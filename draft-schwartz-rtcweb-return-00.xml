@@ -42,15 +42,10 @@
     <area>RAI</area>
 
     <abstract>
-      <t>The TURN relay mechanism can be used by applications to establish a
-      connection between users who would otherwise be prevented from connecting
-      due to their networks' configurations.  It can also be used by local
-      network administrators to redirect media traffic that would otherwise be
-      blocked.  Finally, TURN can serve to enhance privacy by allowing a web
-      service to conceal one endpoint's transport address from the other
-      endpoint.  This document reviews strategies for using TURN to provide all
-      of these benefits, separately or simultaneously, in the context of
-      WebRTC.</t>
+      <t>In the context of WebRTC, the concept of a local TURN proxy has been
+      suggested, but not reviewed in detail. WebRTC applications are already
+      using TURN to enhance connectivity and privacy. This document explains how
+      local TURN proxies and WebRTC applications can work together.</t>
     </abstract>
   </front>
 
@@ -98,8 +93,9 @@
       latency.</t>
 
       <t>To resolve this conflict, we introduce Recursively Encapsulated TURN,
-      a procedure for the use of multiple TURN servers to achieve both
-      connectivity and privacy.</t>
+      a procedure that allows a WebRTC endpoint to route traffic through
+      multiple TURN servers, and get improved connectivity and privacy in
+      return.</t>
     </section>
 
     <section title="Goals">
