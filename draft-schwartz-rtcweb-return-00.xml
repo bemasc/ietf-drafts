@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc iprnotified="no" ?>
+<?rfc strict="yes" ?>
+<?rfc compact="yes" ?>
+<?rfc sortrefs="yes" ?>
+<?rfc colonspace="yes" ?>
+<?rfc rfcedstyle="no" ?>
+<?rfc tocdepth="4"?>
+<rfc category="std" docName="draft-schwartz-rtcweb-return-00" ipr="trust200902">
+  <front>
+    <title abbrev="RETURN">
+      Recursively Encapsulated TURN (RETURN) for Connectivity and Privacy in
+      WebRTC
+    </title>
+
+    <author fullname="Benjamin M. Schwartz" initials="B. M." surname="Schwartz">
+      <organization>Google</organization>
+
+      <address>
+        <postal>
+          <street>747 6th Ave S</street>
+
+          <city>Kirkland</city>
+
+          <region>WA</region>
+
+          <code>98033</code>
+
+          <country>USA</country>
+        </postal>
+
+        <email>bemasc@webrtc.org</email>
+      </address>
+    </author>
+
+    <date day="7" month="August" year="2014" />
+
+    <area>RAI</area>
+
+    <abstract>
+      <t>The TURN relay mechanism can be used by applications to establish a
+      connection between users who would otherwise be prevented from connecting
+      due to their networks' configurations.  It can also be used by local
+      network administrators to redirect media traffic that would otherwise be
+      blocked.  Finally, TURN can serve to enhance privacy by allowing a web
+      service to conceal one endpoint's transport address from the other
+      endpoint.  This document reviews strategies for using TURN to provide all
+      of these benefits, separately or simultaneously, in the context of
+      WebRTC.</t>
+    </abstract>
+  </front>
+
+  <middle>
+    <section title="Introduction">
+      <t>TURN <xref target="RFC5766"></xref> is a protocol for communication
+      between a client and a TURN server, in order to route UDP traffic to and
+      from one or more peers. As noted in <xref target="RFC5766"></xref>, the
+      TURN relay server &ldquo;typically sits in the public Internet&rdquo;.  In
+      a WebRTC context, if a TURN server is to be used, it is typically provided
+      by the application, either to provide connectivity between users whose NATs
+      would otherwise prevent it, or to obscure the identity of the participants
+      by concealing their IP addresses from one another.</t>
+
+      <t>In many enterprises, direct UDP transmissions are not permitted between
+      clients on the internal networks and external IP addresses, so media must
+      flow over TCP.  To enable WebRTC services in such a situation, clients
+      must use TURN-TCP, or TURN-TLS.  These configurations are not ideal: they
+      send all traffic over TCP, which leads to higher latency than would
+      otherwise be necessary, and they force the application provider to operate
+      a TURN server because WebRTC endpoints behind NAT cannot typically act as
+      TCP servers.  These configurations may result in especially bad behaviors
+      when operating through TCP or HTTP proxies that were not designed to carry
+      real-time media streams.</t>
+
+      <t>To avoid forcing WebRTC media streams through a TCP stage, enterprise
+      network operators may operate a TURN server for their network, which can
+      be discovered by clients using TURN Auto-Discovery
+      <xref target="I-D.ietf-tram-turn-server-discovery"></xref>, or through a
+      proprietary mechanism. Use of the specified TURN server may be the only
+      way for clients on the network to achieve a high quality WebRTC
+      experience.  This scenario is required to be supported by the WebRTC
+      requirements document
+      <xref target="I-D.ietf-rtcweb-use-cases-and-requirements"></xref> Section
+      3.3.5.1.</t>
+
+      <t>When the application intends to use a TURN server for identity
+      cloaking, and the enterprise network administrator intends to use a TURN
+      server for connectivity, there is a conflict.  In current WebRTC
+      implementations, only a single TURN server can be used in one candidate,
+      but using only the enterprise's TURN server reveals information about the
+      user (e.g. organizational affiliation), and using only the application's
+      TURN server may be blocked by the network administrator, or may require
+      using TURN-TCP or TURN-TLS, resulting in a significant sacrifice in
+      latency.</t>
+
+      <t>To resolve this conflict, we introduce Recursively Encapsulated TURN,
+      a procedure for the use of multiple TURN servers to achieve both
+      connectivity and privacy.</t>
+    </section>
+
+    <section title="Goals">
+      <t>These goals are requirements on this document (not on implementations
+      of the specification).</t>
+
+      <section title="Connectivity">
+        <t>As noted in
+        <xref target="I-D.ietf-rtcweb-use-cases-and-requirements"></xref>
+        Section 3.3.5.1, a WebRTC browser endpoint MUST be able to direct UDP
+        connections through a designated TURN server configured by enterprise
+        policy (a &ldquo;proxy&rdquo;).</t>
+
+        <t>It MUST be possible to configure a WebRTC endpoint that supports
+        proxies to achieve connectivity no worse than if the endpoint were
+        operating at the proxy's address.</t>
+
+        <t>For efficiency, network administrators SHOULD be able to prevent
+        browsers from attempting to send traffic through routes that are already
+        known to be blocked.</t>
+      </section>
+
+      <section title="Privacy">
+        <t>To prevent WebRTC peers from determining each others' IP addresses,
+        applications MUST have the ability to direct all traffic through an
+        application-specified TURN server.</t>
+
+        <t>A compatible WebRTC browser MAY attempt to prevent a hostile web page
+        from determining the endpoint's public IP address.  (The measures
+        proposed here are not sufficient by themselves to achieve this goal.
+        Implementing this specification in current browsers would still leave
+        many other ways for a malicious website to determine the endpoint's IP
+        address.  Operating-system-wide VPN configurations are therefore
+        currently preferred for this purpose.)</t>
+
+        <t>A compatible WebRTC browser MAY allow the user to prevent
+        non-malicious web pages from accidentally revealing the IP address of
+        remote peers to a local passive network adversary.  This ability SHOULD
+        NOT reduce performance when it is not in use.  (Due to the difficulty of
+        distinguishing between stupidity and malice, this goal is principally
+        aspirational.)</t>
+      </section>
+    </section>
+
+    <section title="Concepts">
+      <t>To achieve our goals, we introduce the following new concepts:</t>
+
+      <section title="Proxy">
+        <t>In this document a &ldquo;proxy&rdquo; is any TURN server that was
+        provided by any mechanism other than through the standard
+        WebRTC-application ICE candidate provisioning API
+        <xref target="I-D.ietf-rtcweb-jsep"></xref>.  If a proxy is to be used,
+        it will be the destination of traffic generated by the client. There is
+        no analogue to the transparent/intercepting HTTP proxy configuration,
+        which modifies traffic at the network layer.  Mechanisms to configure a
+        proxy include Auto-Discovery
+        <xref target="I-D.ietf-tram-turn-server-discovery"></xref> and local
+        policy (<xref target="I-D.ietf-rtcweb-jsep"></xref>, "ICE candidate
+        policy").</t>
+
+        <t>In an application context, a proxy may be &ldquo;active&rdquo;
+        (producing candidates) or &ldquo;inactive&rdquo; (not in use, having no
+        effect on the context).</t>
+      </section>
+
+      <section title="Virtual interface">
+        <t>A typical WebRTC browser endpoint may have multiple network
+        interfaces available, such as wired ethernet, wireless ethernet, and
+        WAN.  In this document, a &ldquo;virtual interface&rdquo; is a procedure
+        for generating ICE candidates that are not simply generated by a
+        particular physical interface.  A virtual interface can produce
+        &ldquo;host&rdquo;, &ldquo;server-reflexive&rdquo;,
+        and &ldquo;relay&rdquo; candidates, but may be restricted to only some
+        type of candidate (e.g. UDP-only).</t>
+      </section>
+
+      <section title="Proxy configuration tightness">
+        <t>&ldquo;Tightness&rdquo; is an attribute of a proxy configuration.
+        This document defines two values for the &ldquo;tightness&rdquo; of a
+        proxy configuration: &ldquo;leaky&rdquo; and &ldquo;sealed&rdquo;. Proxy
+        configuration, including tightness, may be set by local policy
+        (<xref target="I-D.ietf-rtcweb-jsep"></xref>,
+        &ldquo;ICE candidate policy&rdquo;) or other mechanisms.</t>
+
+        <t>A leaky configuration adds a proxy and also allows the browser to use
+        routes that transit directly via the endpoint's physical interfaces (not
+        through the proxy).  In a leaky configuration, setting a proxy augments
+        the available set of ICE candidates.  Multiple leaky-configuration
+        proxies may therefore be active simultaneously.</t>
+
+        <t>A sealed proxy configuration requires the browser to route all WebRTC
+        traffic through the proxy, eliminating all ICE candidates that do not go
+        through the proxy.  Only one sealed proxy may be active at a time.</t>
+      </section>
+
+      <section title="Sealed proxy rank">
+        <t>In some configurations, an endpoint may be subject to multiple sealed
+        proxy settings at the same time.  In that case, one of those settings
+        will have highest rank, and it will be the active proxy.  In a given
+        application context (e.g. a webpage), there is at most one active sealed
+        proxy.  This document does not specify a representation for rank.</t>
+      </section>
+    </section>
+
+    <section title="Requirements">
+      <section title="ICE candidates produced in the presence of a proxy">
+        <t>When a proxy is configured, by Auto-Discovery or a proprietary means,
+        the browser MUST NOT report a &ldquo;relay&rdquo; candidate representing
+        the proxy. Instead, for each active proxy, the browser MUST connect to
+        the proxy and then, if the connection is successful, treat the TURN
+        tunnel as a UDP-only virtual interface.</t>
+
+        <t>For a virtual interface representing a TURN proxy, this means that
+        the browser MUST report the public-facing IP address and port acquired
+        through TURN as a &ldquo;host&rdquo; candidate, the browser MUST perform
+        STUN through the TURN proxy (if STUN is configured), and it MUST perform
+        TURN by recursive encapsulation through the TURN proxy, resulting in
+        TURN candidates whose &ldquo;raddr&rdquo; and &ldquo;rport&rdquo;
+        attributes match the acquired public-facing IP address and port on the
+        proxy.</t>
+
+        <t>Because the virtual interface has some additional overhead due to
+        indirection, it SHOULD have lower priority than the physical interfaces
+        if physical interfaces are also active.  Specifically, even host
+        candidates generated by a virtual interface SHOULD have priority 0 when
+        physical interfaces are active (similar to
+        <xref target="RFC5245"></xref> Section 4.1.2.2, &ldquo;the local
+        preference for host candidates from a VPN interface SHOULD have a
+        priority of 0&rdquo;).</t>
+      </section>
+
+      <section title="Leaky proxy configuration">
+        <t>If the active proxy for an application is leaky, the browser should
+        undertake the standard ICE candidate discovery mechanism
+        <xref target="RFC5245"></xref> on the available physical and virtual
+        interfaces.</t>
+      </section>
+
+      <section title="Sealed proxy configuration">
+        <t>If the active proxy for an application is sealed, the browser MUST
+        NOT gather or produce any candidates on physical interfaces.  The WebRTC
+        implementation MUST direct its traffic from those interfaces only to the
+        proxy, and perform ICE candidate discovery only on the single virtual
+        interface representing the proxy.</t>
+      </section>
+
+      <section title="Proxy rank">
+        <t>Any browser mechanism for specifying a proxy SHOULD allow the caller
+        to indicate a higher rank than the proxy provided by Auto-Discovery
+        <xref target="I-D.ietf-tram-turn-server-discovery"></xref>.</t>
+      </section>
+
+      <section title="Multiple physical interfaces">
+        <t>Some operating systems allow the browser to use multiple interfaces
+        to contact a single remote IP address.  To avoid producing an excessive
+        number of candidates, WebRTC endpoints MUST NOT use multiple physical
+        interfaces to connect to a single proxy simultaneously.  (If this were
+        violated, it could produce a number of virtual interfaces equal to the
+        product of the number of physical interfaces and the number of active
+        proxies.)</t>
+
+        <t>For strategies to choose the best interface for communication with a
+        proxy, see
+        <xref target="I-D.reddy-mmusic-ice-best-interface-pcp"></xref>.  Similar
+        considerations apply when connecting to an application-specified TURN
+        server in the presence of physical and virtual interfaces.</t>
+      </section>
+
+      <section title="Unspecified tightness">
+        <t>If a proxy configuration mechanism does not specify tightness,
+        browsers SHOULD treat the proxy as leaky.  This is similar to current
+        WebRTC implementations' behavior in the presence of SOCKS and HTTP
+        proxies: the candidate allocation code continues to generate UDP
+        candidates that do not transit through the proxy.</t>
+      </section>
+
+      <section title="Interaction with SOCKS5-UDP">
+        <t>The <xref target="RFC1928">SOCKS5 proxy standard</xref> permits
+        compliant SOCKS proxies to support UDP traffic.  However, most
+        implementations of SOCKS5 today do not support UDP.  Accordingly, WebRTC
+        browsers MUST by default (i.e. unless deliberately configured otherwise)
+        treat SOCKS5 proxies as leaky and having lower rank than any configured
+        TURN proxies.</t>
+      </section>
+    </section>
+
+    <section title="Examples">
+      <section title="Firewalled enterprise network with a basic application">
+        <t>In this example, an enterprise network is configured with a firewall
+        that blocks all UDP traffic, and a TURN server is advertised for
+        Auto-Discovery in accordance with
+        <xref target="I-D.ietf-tram-turn-server-discovery"></xref>.
+        The proxy tightness of the TURN server is unspecified, so the browser
+        treats it as leaky.</t>
+
+        <t>The application specifies a STUN and TURN server on the public net.
+        In accordance with the ICE candidate gathering algorithm
+        <xref target="RFC5245">RFC 5245</xref>, it receives a set of candidates
+        like:
+          <list style="numbers">
+            <t>A host candidate acquired from one interface.
+            <list style="symbols">
+              <t>e.g. candidate:1610808681 1 udp 2122194687 [internal ip addr
+              for interface 0] 63555 typ host generation 0</t>
+            </list></t>
+            <t>A host candidate acquired from a different interface.
+            <list style="symbols">
+              <t>e.g. candidate:1610808681 1 udp 2122194687 [internal ip addr
+              for interface 1] 54253 typ host generation 0</t>
+            </list></t>
+            <t>The proxy, as a host candidate.
+            <list style="symbols">
+              <t>e.g. candidate:3458234523 1 udp 24584191 [public ip addr for
+              the proxy] 54606 typ host generation 0</t>
+            </list></t>
+            <t>The virtual interface also generates a STUN candidate, but it is
+            eliminated because it is redundant with the host candidate, as noted
+            in <xref target="RFC5245"></xref> Sec 4.1.2..</t>
+            <t>The application-provided TURN server as seen through the virtual
+            interface.  (Traffic through this candidate is recursively
+            encapsulated.)
+            <list style="symbols">
+              <t>e.g. candidate:702786350 1 udp 24583935 [public ip addr of the
+              application TURN server] 52631 typ relay raddr [public ip addr for
+              the proxy] rport 54606 generation 0</t>
+            </list></t>
+          </list>
+        There are no STUN or TURN candidates on the physical interfaces, because
+        the application-specified STUN and TURN servers are not reachable
+        through the firewall.</t>
+
+        <t>If the remote peer is within the same network, it may be possible to
+        establish a direct connection using both peers' host candidates.  If the
+        network prevents this kind of direct connection, the path will instead
+        take a &ldquo;hairpin&rdquo; route through the enterprise's proxy, using
+        one peer's physical &ldquo;host&rdquo; candidate and the other's virtual
+        &ldquo;host&rdquo; candidate, or (if that is also disallowed by the
+        network configuration) a &ldquo;double hairpin&rdquo; using both
+        endpoints' virtual &ldquo;host&rdquo; candidates.</t>
+      </section>
+
+      <section title="Conflicting proxies configured by Auto-Discovery and local
+          policy">
+        <t>Consider an enterprise network with TURN and HTTP proxies advertised
+        for Auto-Discovery with unspecified tightness (thus defaulting to
+        leaky). The browser endpoint configures an additional TURN proxy by a
+        proprietary local mechanism.</t>
+
+        <t>If the locally configured proxy is leaky, then the browser MUST
+        produce candidates representing any physical interfaces (including
+        SSLTCP routes through the HTTP proxy), plus candidates for both UDP-only
+        virtual interfaces created by the two TURN servers.</t>
+
+        <t>There MUST NOT be any candidate that uses both proxies.  Multiple
+        configured proxies are not chained recursively.</t>
+
+        <t>If the locally configured proxy is &ldquo;sealed&rdquo;, then the
+        browser MUST produce only candidates from the virtual interface
+        associated with that proxy.</t>
+
+        <t>If both proxies are configured for &ldquo;sealed&rdquo; use, then the
+        browser MUST produce only candidates from the virtual interface
+        associated with the proxy with higher rank.</t>
+      </section>
+    </section>
+
+    <section title="Security Considerations">
+      <t>This document describes web browser behaviors that, if implemented
+      correctly, allow users to achieve greater identity-confidentiality during
+      WebRTC calls under certain configurations.</t>
+    </section>
+
+    <section title="IANA Considerations">
+      <t>This document requires no actions from IANA.</t>
+    </section>
+
+    <section title="Acknowledgements">
+      <t>Significant review, including the virtual-interface formulation, was
+      provided by Justin Uberti.</t>
+    </section>
+  </middle>
+
+  <back>
+    <references title="Normative References">
+      <reference anchor="RFC5245">
+        <front>
+          <title>Interactive Connectivity Establishment (ICE): A Protocol for
+          Network Address Translator (NAT) Traversal for Offer/Answer
+          Protocols</title>
+
+          <author fullname="J. Rosenberg" initials="J." surname="Rosenberg">
+            <organization>jdrosen.net</organization>
+          </author>
+
+          <date month="April" year="2010" />
+        </front>
+
+        <seriesInfo name="RFC" value="5245" />
+
+        <format target="http://www.rfc-editor.org/rfc/rfc5245.txt" type="TXT" />
+      </reference>
+
+      <reference anchor="RFC5766">
+        <front>
+          <title>Traversal Using Relays around NAT (TURN): Relay Extensions to
+          Session Traversal Utilities for NAT (STUN)</title>
+
+          <author fullname="Rohan Mahy" initials="R." surname="Mahy">
+            <organization></organization>
+          </author>
+
+          <author fullname="Philip Matthews" initials="P." surname="Matthews">
+            <organization>Alcatel-Lucent</organization>
+          </author>
+
+          <author fullname="J. Rosenberg" initials="J." surname="Rosenberg">
+            <organization>jdrosen.net</organization>
+          </author>
+
+          <date month="April" year="2010" />
+        </front>
+
+        <seriesInfo name="RFC" value="5766" />
+
+        <format target="http://www.rfc-editor.org/rfc/rfc5245.txt" type="TXT" />
+      </reference>
+
+      <reference anchor="RFC1928">
+        <front>
+          <title>SOCKS Protocol Version 5</title>
+
+          <author fullname="Marcus Leech" initials="M." surname="Leech">
+            <organization>Bell-Northern Research Ltd</organization>
+          </author>
+
+          <author initials="M." surname="Ganis">
+            <organization>International Business Machines</organization>
+          </author>
+
+          <author initials="Y." surname="Lee">
+            <organization>NEC Systems Laboratory</organization>
+          </author>
+
+          <author initials="R." surname="Kuris">
+            <organization>Unify Corporation</organization>
+          </author>
+
+          <author initials="D." surname="Koblas">
+            <organization></organization>
+          </author>
+
+          <author initials="L." surname="Jones">
+            <organization>Hewlett-Packard Company</organization>
+          </author>
+
+          <date month="March" year="1996" />
+        </front>
+
+        <seriesInfo name="RFC" value="5766" />
+
+        <format octets="285120"
+                target="http://www.rfc-editor.org/rfc/rfc1928.txt" type="TXT" />
+      </reference>
+
+      <reference anchor="I-D.ietf-rtcweb-jsep">
+        <front>
+          <title>Javascript Session Establishment Protocol</title>
+
+          <author fullname="Justin Uberti" initials="J" surname="Uberti">
+            <organization></organization>
+          </author>
+
+          <author fullname="Cullen Jennings" initials="C" surname="Jennings">
+            <organization></organization>
+          </author>
+
+          <date day="13" month="February" year="2014" />
+
+          <abstract>
+            <t>This document describes the mechanisms for allowing a Javascript
+            application to control the signaling plane of a multimedia session
+            via the interface specified in the W3C RTCPeerConnection API, and
+            discusses how this relates to existing signaling protocols.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft" value="draft-ietf-rtcweb-jsep-06" />
+
+        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-jsep-06.txt"
+                type="TXT" />
+      </reference>
+    </references>
+
+    <references title="Informative References">
+      <reference anchor="I-D.ietf-tram-turn-server-discovery">
+        <front>
+          <title>TURN Server Auto Discovery</title>
+
+          <author fullname="Prashanth Patil" initials="P" surname="Patil">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Dan Wing" initials="D" surname="Wing">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <date day="24" month="July" year="2014" />
+
+          <abstract>
+            <t>Current Traversal Using Relays around NAT (TURN) server discovery
+            mechanisms are relatively static and limited to explicit
+            configuration.  These are usually under the administrative control
+            of the application or TURN service provider, and not the enterprise
+            or the ISP, the network in which the client is located.  Enterprises
+            and ISPs wishing to provide their own TURN servers need auto
+            discovery mechanisms that a TURN client could use with no or minimal
+            configuration.  This document describes two such mechanisms for TURN
+            server discovery.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft"
+                    value="draft-ietf-tram-turn-server-discovery-00" />
+
+        <format target="http://www.ietf.org/internet-drafts/draft-ietf-tram-turn-server-discovery-00.txt"
+                type="TXT" />
+      </reference>
+
+      <reference anchor="I-D.reddy-mmusic-ice-best-interface-pcp">
+        <front>
+          <title>Improving ICE Interface Selection Using Port Control Protocol
+          (PCP) Flow Extension</title>
+
+          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Dan Wing" initials="D" surname="Wing">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Bill VerSteeg" initials="B" surname="VerSteeg">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Reinaldo Penno" initials="R" surname="Penno">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Varun Singh" initials="V" surname="Singh">
+            <organization>Aalto University</organization>
+          </author>
+
+          <date day="10" month="October" year="2013" />
+
+          <abstract>
+            <t>A host with multiple interfaces needs to choose the best
+            interface for communication.  Oftentimes, this decision is based on
+            a static configuration and does not consider the link
+            characteristics of that interface, which may affect the user
+            experience.</t>
+
+            <t>This document describes a mechanism for an endpoint to query the
+            link characteristics from the access router (the router at the other
+            end of the endpoint's access link) using a Port Control Protocol
+            (PCP) Flow Extension.  This information influences endpoint's
+            Interactive Connectivity Establishment (ICE) candidate selection
+            algorithm.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft"
+                    value="draft-ietf-tram-turn-server-discovery-00" />
+
+        <format target="http://www.ietf.org/internet-drafts/draft-ietf-tram-turn-server-discovery-00.txt"
+                type="TXT" />
+      </reference>
+
+      <reference anchor="I-D.ietf-rtcweb-use-cases-and-requirements">
+        <front>
+          <title>Web Real-Time Communication Use-cases and Requirements</title>
+
+          <author fullname="Christer Holmberg" initials="C" surname="Holmberg">
+            <organization>Ericsson</organization>
+          </author>
+
+          <author fullname="Stefan Hakansson" initials="S" surname="Hakansson">
+            <organization>Ericsson</organization>
+          </author>
+
+          <author fullname="Goran AP Eriksson" initials="G" surname="Eriksson">
+            <organization>Ericsson</organization>
+          </author>
+
+          <date day="12" month="February" year="2014" />
+
+          <abstract>
+            <t>This document describes web based real-time communication
+            use-cases. Requirements on the browser functionality are derived
+            from the use-cases.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft"
+                    value="ietf-rtcweb-use-cases-and-requirements-14" />
+
+        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
+                type="TXT" />
+      </reference>
+
+    </references>
+
+  </back>
+</rfc>
