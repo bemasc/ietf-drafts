@@ -172,11 +172,11 @@
         type of candidate (e.g. UDP-only).</t>
       </section>
 
-      <section title="Proxy configuration tightness">
-        <t>&ldquo;Tightness&rdquo; is an attribute of a proxy configuration.
-        This document defines two values for the &ldquo;tightness&rdquo; of a
+      <section title="Proxy configuration leakiness">
+        <t>&ldquo;Leakiness&rdquo; is an attribute of a proxy configuration.
+        This document defines two values for the &ldquo;leakiness&rdquo; of a
         proxy configuration: &ldquo;leaky&rdquo; and &ldquo;sealed&rdquo;. Proxy
-        configuration, including tightness, may be set by local policy
+        configuration, including leakiness, may be set by local policy
         (<xref target="I-D.ietf-rtcweb-jsep"></xref>,
         &ldquo;ICE candidate policy&rdquo;) or other mechanisms.</t>
 
@@ -264,8 +264,8 @@
         server in the presence of physical and virtual interfaces.</t>
       </section>
 
-      <section title="Unspecified tightness">
-        <t>If a proxy configuration mechanism does not specify tightness,
+      <section title="Unspecified leakiness">
+        <t>If a proxy configuration mechanism does not specify leakiness,
         browsers SHOULD treat the proxy as leaky.  This is similar to current
         WebRTC implementations' behavior in the presence of SOCKS and HTTP
         proxies: the candidate allocation code continues to generate UDP
@@ -288,7 +288,7 @@
         that blocks all UDP traffic, and a TURN server is advertised for
         Auto-Discovery in accordance with
         <xref target="I-D.ietf-tram-turn-server-discovery"></xref>.
-        The proxy tightness of the TURN server is unspecified, so the browser
+        The proxy leakiness of the TURN server is unspecified, so the browser
         treats it as leaky.</t>
 
         <t>The application specifies a STUN and TURN server on the public net.
@@ -340,7 +340,7 @@
       <section title="Conflicting proxies configured by Auto-Discovery and local
           policy">
         <t>Consider an enterprise network with TURN and HTTP proxies advertised
-        for Auto-Discovery with unspecified tightness (thus defaulting to
+        for Auto-Discovery with unspecified leakiness (thus defaulting to
         leaky). The browser endpoint configures an additional TURN proxy by a
         proprietary local mechanism.</t>
 
