@@ -366,6 +366,15 @@
       <t>This document describes web browser behaviors that, if implemented
       correctly, allow users to achieve greater identity-confidentiality during
       WebRTC calls under certain configurations.</t>
+
+      <t>If a site administrator offers the site's users a TURN proxy, websites
+      running in the users' browsers will be able to initiate a UDP-based WebRTC
+      connection to any UDP transport address via the proxy.  Websites'
+      connections will quickly terminate if the remote endpoint does not reply
+      with a positive indication of ICE consent, but no such restriction applies
+      to other applications that access the TURN server.  Administrators should
+      take care to provide TURN access credentials only to the users who are
+      authorized to have global UDP network access.</t>
     </section>
 
     <section title="IANA Considerations">
