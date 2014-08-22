@@ -37,7 +37,7 @@
       </address>
     </author>
 
-    <date day="19" month="August" year="2014" />
+    <date day="22" month="August" year="2014" />
 
     <area>RAI</area>
 
@@ -85,7 +85,8 @@
       <t>When the application intends to use a TURN server for identity
       cloaking, and the enterprise network administrator intends to use a TURN
       server for connectivity, there is a conflict.  In current WebRTC
-      implementations, only a single TURN server can be used in one candidate,
+      implementations, TURN can only be used on a single-hop basis in each
+      candidate,
       but using only the enterprise's TURN server reveals information about the
       user (e.g. organizational affiliation), and using only the application's
       TURN server may be blocked by the network administrator, or may require
@@ -239,7 +240,7 @@
         NOT gather or produce any candidates on physical interfaces.  The WebRTC
         implementation MUST direct its traffic from those interfaces only to the
         proxy, and perform ICE candidate discovery only on the single virtual
-        interface representing the proxy.</t>
+        interface representing the active proxy.</t>
       </section>
 
       <section title="Proxy rank">
@@ -362,6 +363,63 @@
       </section>
     </section>
 
+    <section title="Diagrams">
+      <figure anchor="basic_figure"
+          title="Basic WebRTC ICE candidates (no proxy)">
+        <preamble>This figure shows the connections that provide the ICE
+        candidates for WebRTC in the basic configuration (no proxy).  This figure
+        is provided in order to provide a baseline against which to compare the
+        candidate routes that make use of a proxy.</preamble>
+        <artwork><![CDATA[
++-------------+       *     *
+|UDP generator|       *     *     +----+
+|         host+----+--O-----O.....+STUN|
+|relay   srflx|    |  *     *     +----+
++--+-------+--+    |  *     *
+   |       |       |  * LAN *
+   |       +-------+  *     *
+   |                  *     *                *
+   |      +------+    *     *   +------+     *
+   +------+ TURN +==============+ TURN +-----O
+          |client|    *     *   |server|     *
+          +------+    *     *   +------+     *
+
+.. STUN packets               *** Network interface
+-- Bare UDP content link      *O* Candidate port
+== TURN encapsulated link
+]]></artwork>
+      </figure>
+
+      <figure anchor="proxy_figure"
+          title="WebRTC ICE candidates using a proxy">
+        <preamble>This figure shows the connections that provide the ICE
+        candidates for WebRTC when making use of a proxy.</preamble>
+        <artwork><![CDATA[
++-------------+    *  +------+  *                     +----+
+|UDP generator|    *  |Proxy |  *                    .+STUN|
+|         host+-------+ TURN |  *               *   . +----+
+|relay   srflx|    *  |Client|  *               *  .
++--+-------+--+    *  |      |  *   +------+    * .   +------+     *
+   |       |       *  |      |  *   |Proxy |    *.    | App  |     *
+   |       +----------+      +######+ TURN +????O=====+TURN  +-----O
+   |               *  |      |  *   |Server|    *     |Server|     *
+   |      +------+ *  |      |  *   +------+    *     +------+     *
+   |      | App  | *  |      |  *               *
+   +------+ TURN +====+      |  *               *
+          |client| *  |      |  *
+          +------+ *  +------+  *
+
+.. STUN packets                         *** Network interface
+-- Bare UDP content link                *O* Candidate port
+== TURN encapsulated UDP content link
+## RETURN double-encapsulated link
+?? Mixed content link
+]]></artwork>
+      </figure>
+
+
+    </section>
+
     <section title="Security Considerations">
       <t>This document describes web browser behaviors that, if implemented
       correctly, allow users to achieve greater identity-confidentiality during
@@ -383,7 +441,8 @@
 
     <section title="Acknowledgements">
       <t>Significant review, including the virtual-interface formulation, was
-      provided by Justin Uberti.</t>
+      provided by Justin Uberti.  Thanks to Harald Alvestrand and Phillip
+      Hancke for suggestions to clarify the text.</t>
     </section>
   </middle>
 
