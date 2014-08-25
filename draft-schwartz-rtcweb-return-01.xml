@@ -281,6 +281,19 @@
         treat SOCKS5 proxies as leaky and having lower rank than any configured
         TURN proxies.</t>
       </section>
+
+      <section title="Interaction with alternate TURN server fallback">
+        <t>If the client supports an alternate TURN server fallback mechanism
+        (e.g. <xref target="I-D.williams-peer-redirect">ALTERNATE-SERVER</xref>)
+        the client MAY use it in conjunction with RETURN.  In the case of the
+        proxy, the virtual interface associated with the proxy MUST NOT be made
+        available to the application until after the TURN server fallback
+        process is complete.  When performing TURN server fallback on the
+        application TURN server while a TURN proxy is active, all fallback-
+        related traffic must be tunneled through the proxy.  This will cause the
+        application TURN server to be selected relative to the proxy's public
+        address, as desired for optimal routing.</t>
+      </section>
     </section>
 
     <section title="Examples">
@@ -441,8 +454,8 @@
 
     <section title="Acknowledgements">
       <t>Significant review, including the virtual-interface formulation, was
-      provided by Justin Uberti.  Thanks to Harald Alvestrand and Phillip
-      Hancke for suggestions to clarify the text.</t>
+      provided by Justin Uberti.  Thanks to Harald Alvestrand, Phillip
+      Hancke, and Tirumaleswar Reddy for suggestions to improve the text.</t>
     </section>
   </middle>
 
@@ -675,6 +688,36 @@
                     value="ietf-rtcweb-use-cases-and-requirements-14" />
 
         <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
+                type="TXT" />
+      </reference>
+
+      <reference anchor="I-D.williams-peer-redirect">
+        <front>
+          <title>Peer-specific Redirection for Traversal Using Relays around
+          NAT (TURN)</title>
+
+          <author fullname="Brandon Williams" initials="B" surname="Wiliams">
+            <organization>Akamai</organization>
+          </author>
+
+          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
+            <organization>Cisco</organization>
+          </author>
+
+          <date day="10" month="June" year="2014" />
+
+          <abstract>
+            <t>This specification describes a peer-specific redirection method
+            that allows the TURN server to redirect a client for the purpose of
+            improving communication with a specific peer without negatively
+            affecting communication with other peers.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft"
+                    value="draft-williams-peer-redirect-01" />
+
+        <format target="http://tools.ietf.org/id/draft-williams-peer-redirect-01.txt"
                 type="TXT" />
       </reference>
 
