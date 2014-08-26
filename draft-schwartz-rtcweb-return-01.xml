@@ -282,6 +282,33 @@
         TURN proxies.</t>
       </section>
 
+      <section title="Encapsulation overhead, fragmentation, and Path MTU">
+       <t>Encapsulating a link in TURN adds overhead on the path between the
+       client and the TURN server, because each packet must be wrapped in a
+       TURN message.  This overhead is sometimes doubled in RETURN proxying.
+       To avoid excessive overhead, client implementations SHOULD use
+       ChannelBind and ChannelData messages to connect and send data through
+       proxies and application TURN servers, and SHOULD NOT use
+       CreatePermission and Send messages, which result in larger overhead.</t>
+
+       <t>Adding overhead to packets on a link decreases the effective
+       Maximum Transmissible Unit on that link.  For efficient delivery, it is
+       important to avoid fragmentation, so WebRTC endpoints employ Path MTU
+       discovery.  PMTU discovery uses the Don't Fragment (DF) bit to improve
+       performance.  To ensure that PMTU discovery works well and accounts for
+       the overhead of double-encapsulated TURN links, WebRTC TURN clients
+       SHOULD set the (DF) bit on ChannelData (or Send) message packets to the
+       same value requested by the UDP sender for the data packet itself.</t>
+
+       <t>ChannelData messages have constant overheard, enabling consistent
+       effective PMTU.  Send messages do not necessarily have constant overhead.
+       Client implementations SHOULD NOT use Send messages, but if Send
+       messages are used, they SHOULD be constructed to have constant
+       overhead.  Setting the DONT-FRAGMENT attribute changes the Send message
+       overhead, so to achieve this a client that uses Send messages might
+       choose to disable fragmentation for the entire connection.</t>
+      </section>
+
       <section title="Interaction with alternate TURN server fallback">
         <t>If the client supports an alternate TURN server selection mechanism
         (e.g. <xref target="I-D.williams-peer-redirect">ALTERNATE-SERVER</xref>)
