@@ -288,25 +288,23 @@
        TURN message.  This overhead is sometimes doubled in RETURN proxying.
        To avoid excessive overhead, client implementations SHOULD use
        ChannelBind and ChannelData messages to connect and send data through
-       proxies and application TURN servers, and SHOULD NOT use
-       CreatePermission and Send messages, which result in larger overhead.</t>
+       proxies and application TURN servers when possible.  Clients MAY buffer
+       messages to be sent until the ChannelBind command completes (requiring
+       one round trip to the proxy), or they MAY use CreatePermission and Send
+       messages for the first few packets to reduce startup latency at the cost
+       of higher overhead.</t>
 
        <t>Adding overhead to packets on a link decreases the effective
-       Maximum Transmissible Unit on that link.  For efficient delivery, it is
-       important to avoid fragmentation, so WebRTC endpoints employ Path MTU
-       discovery.  PMTU discovery uses the Don't Fragment (DF) bit to improve
-       performance.  To ensure that PMTU discovery works well and accounts for
-       the overhead of double-encapsulated TURN links, WebRTC TURN clients
-       SHOULD set the (DF) bit on ChannelData (or Send) message packets to the
-       same value requested by the UDP sender for the data packet itself.</t>
+       Maximum Transmissible Unit on that link.  Accordingly, clients that
+       support proxying MUST NOT rely on the effective MTU complying with the
+       Internet Protocol's minimum MTU requirement.</t>
 
        <t>ChannelData messages have constant overheard, enabling consistent
-       effective PMTU.  Send messages do not necessarily have constant overhead.
-       Client implementations SHOULD NOT use Send messages, but if Send
-       messages are used, they SHOULD be constructed to have constant
-       overhead.  Setting the DONT-FRAGMENT attribute changes the Send message
-       overhead, so to achieve this a client that uses Send messages might
-       choose to disable fragmentation for the entire connection.</t>
+       effective PMTU, but Send messages do not necessarily have constant
+       overhead. TURN messages may be fragmented and reassembled if they are not
+       marked with the Don't Fragment (DF) IP bit or the DONT-FRAGMENT TURN
+       attribute.  Client implementors should keep this in mind, especially if
+       they choose to implement PMTU discovery through the proxy.</t>
       </section>
 
       <section title="Interaction with alternate TURN server fallback">
