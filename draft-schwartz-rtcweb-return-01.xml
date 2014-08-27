@@ -310,29 +310,13 @@
       </section>
 
       <section title="Interaction with alternate TURN server fallback">
-        <t>If the client supports an alternate TURN server selection mechanism
-        (e.g. <xref target="I-D.williams-peer-redirect">ALTERNATE-SERVER</xref>)
-        the client MAY use it in messages to the application TURN server,
-        without restriction.</t>
-
-        <t>When sending TURN messages to the proxy, the client's ability to use
-        alternate server selection is limited.  For ICE to function correctly,
-        host candidates on the virtual interface must not change depending on
-        the remote peer's address.  For STUN to function correctly in the
-        context of ICE, the transport address used to contact the STUN server
-        MUST be the same as the transport address used to contact the remote
-        peer.</t>
-
-        <t>These considerations do not apply when contacting an application TURN
-        server through the proxy.  However, if the application TURN server and
-        proxy are both configured to use alternate TURN server selection, an
-        infinite loop is possible.  For example, if the proxy and application
-        TURN servers both operate at two addresses, and disagree about the
-        optimal pairing, an infinite loop will result.</t>
-
-        <t>To simplify implementation and avoid these concerns, the client MUST
-        NOT enable alternate TURN server selection when communicating with the
-        proxy.</t>
+        <t>As per <xref target="RFC5766"></xref>, a TURN server MAY respond to
+        an Allocate request with an error code of 300 and an ALTERNATE-SERVER
+        indication.  When connecting to proxies or application TURN servers,
+        clients SHOULD attempt to connect to the specified alternate server in
+        accordance with <xref target="RFC5766"></xref>.  The client MUST route
+        a connection to the alternate server through the proxy if and only if
+        the original connection attempt was routed through the proxy.</t>
       </section>
     </section>
 
@@ -729,36 +713,6 @@
                     value="ietf-rtcweb-use-cases-and-requirements-14" />
 
         <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
-                type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.williams-peer-redirect">
-        <front>
-          <title>Peer-specific Redirection for Traversal Using Relays around
-          NAT (TURN)</title>
-
-          <author fullname="Brandon Williams" initials="B" surname="Wiliams">
-            <organization>Akamai</organization>
-          </author>
-
-          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
-            <organization>Cisco</organization>
-          </author>
-
-          <date day="10" month="June" year="2014" />
-
-          <abstract>
-            <t>This specification describes a peer-specific redirection method
-            that allows the TURN server to redirect a client for the purpose of
-            improving communication with a specific peer without negatively
-            affecting communication with other peers.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="draft-williams-peer-redirect-01" />
-
-        <format target="http://tools.ietf.org/id/draft-williams-peer-redirect-01.txt"
                 type="TXT" />
       </reference>
 
