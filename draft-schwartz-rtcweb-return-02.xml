@@ -75,7 +75,11 @@
       network operators may operate a TURN server for their network, which can
       be discovered by clients using TURN Auto-Discovery
       <xref target="I-D.ietf-tram-turn-server-discovery"></xref>, or through a
-      proprietary mechanism. Use of the specified TURN server may be the only
+      proprietary mechanism. This TURN server may be placed inside the network,
+      with a firewall configuration allowing it to communicate with the public
+      internet, or it may be operated by the a third party outside the network,
+      with a firewall configuration that allows hosts inside the network. to
+      communicate with it. Use of the specified TURN server may be the only
       way for clients on the network to achieve a high quality WebRTC
       experience.  This scenario is required to be supported by the WebRTC
       requirements document
