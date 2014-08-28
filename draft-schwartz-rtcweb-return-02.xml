@@ -472,6 +472,15 @@
       to other applications that access the TURN server.  Administrators should
       take care to provide TURN access credentials only to the users who are
       authorized to have global UDP network access.</t>
+
+      <t>TURN proxies and application TURN servers can provide some privacy
+      protection by obscuring the identity of one peer from the other.
+      However, unencrypted TURN provides no additional privacy from an observer
+      who can monitor the link between the TURN client and server, and even
+      encrypted TURN (<xref target="I-D.ietf-tram-stun-dtls"></xref> Section
+      4.6) does not provide significant privacy from an observer who sniff
+      traffic on both legs of the TURN connection, due to packet timing
+      correlations.</t>
     </section>
 
     <section title="IANA Considerations">
@@ -708,6 +717,42 @@
             <t>This document describes web based real-time communication
             use-cases. Requirements on the browser functionality are derived
             from the use-cases.</t>
+          </abstract>
+        </front>
+
+        <seriesInfo name="Internet-Draft"
+                    value="ietf-rtcweb-use-cases-and-requirements-14" />
+
+        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
+                type="TXT" />
+      </reference>
+
+      <reference anchor="I-D.ietf-tram-stun-dtls">
+        <front>
+          <title>Datagram Transport Layer Security (DTLS) as Transport for
+          Session Traversal Utilities for NAT (STUN)</title>
+
+          <author fullname="Marc Petit-Huguenin" initials="M"
+                  surname="Petit-Huguenin">
+            <organization>Jive Communications</organization>
+          </author>
+
+          <author fullname="Gonzalo Salgueiro" initials="G" surname="Salgueiro">
+            <organization>Cisco Systems</organization>
+          </author>
+
+          <date day="27" month="June" year="2014" />
+
+          <abstract>
+            <t>This document specifies the usage of Datagram Transport Layer
+            Security (DTLS) as a transport protocol for Session Traversal
+            Utilities for NAT (STUN).  It provides guidances on when and how to
+            use DTLS with the currently standardized STUN Usages.  It also
+            specifies modifications to the STUN URIs and TURN URIs and to the
+            TURN resolution mechanism to facilitate the resolution of STUN URIs
+            and TURN URIs into the IP address and port of STUN and TURN servers
+            supporting DTLS as a transport protocol.  This document updates RFC
+            5389 and RFC 5928.</t>
           </abstract>
         </front>
 
