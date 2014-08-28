@@ -208,6 +208,62 @@
       </section>
     </section>
 
+    <section title="Diagrams">
+      <figure anchor="basic_figure"
+          title="Basic WebRTC ICE candidates (no proxy)">
+        <preamble>This figure shows the connections that provide the ICE
+        candidates for WebRTC in the basic configuration (no proxy).  This
+        figure is provided in order to serve as a baseline against which to
+        compare the candidate routes that make use of a proxy.</preamble>
+        <artwork><![CDATA[
++-------------+       *     *
+|UDP generator|       *     *     +----+
+|         host+----+--O-----O.....+STUN|
+|relay   srflx|    |  *     *     +----+
++--+-------+--+    |  *     *
+   |       |       |  * LAN *
+   |       \-------/  *     *
+   |                  *     *                *
+   |      +------+    *     *   +------+     *
+   \------+ TURN +==============+ TURN +-----O
+          |client|    *     *   |server|     *
+          +------+    *     *   +------+     *
+
+.. STUN packets               *** Network interface
+-- Bare UDP content link      *O* Candidate port
+== TURN encapsulated link
+]]></artwork>
+      </figure>
+
+      <figure anchor="proxy_figure"
+          title="WebRTC ICE candidates using a proxy">
+        <preamble>This figure shows the connections that provide the ICE
+        candidates for WebRTC on the virtual interface that represents a
+        proxy.</preamble>
+        <artwork><![CDATA[
++-------------+    *  +------+  *                     +----+
+|UDP generator|    *  |Proxy |  *                    .+STUN|
+|         host+-------+ TURN |  *               *   . +----+
+|relay   srflx|    *  |Client|  *               *  .
++--+-------+--+    *  |      |  *   +------+    * .   +------+     *
+   |       |       *  |      |  *   |Proxy |    *.    | App  |     *
+   |       \----------+      +######+ TURN +????O=====+TURN  +-----O
+   |               *  |      |  *   |Server|    *     |Server|     *
+   |      +------+ *  |      |  *   +------+    *     +------+     *
+   |      | App  | *  |      |  *               *
+   \------+ TURN +====+      |  *               *
+          |client| *  |      |  *
+          +------+ *  +------+  *
+
+.. STUN packets                         *** Network interface
+-- Bare UDP content link                *O* Candidate port
+== TURN encapsulated UDP content link
+## RETURN double-encapsulated link
+?? Mixed content link
+]]></artwork>
+      </figure>
+    </section>
+
     <section title="Requirements">
       <section title="ICE candidates produced in the presence of a proxy">
         <t>When a proxy is configured, by Auto-Discovery or a proprietary means,
@@ -403,63 +459,6 @@
         browser MUST produce only candidates from the virtual interface
         associated with the proxy with higher rank.</t>
       </section>
-    </section>
-
-    <section title="Diagrams">
-      <figure anchor="basic_figure"
-          title="Basic WebRTC ICE candidates (no proxy)">
-        <preamble>This figure shows the connections that provide the ICE
-        candidates for WebRTC in the basic configuration (no proxy).  This figure
-        is provided in order to provide a baseline against which to compare the
-        candidate routes that make use of a proxy.</preamble>
-        <artwork><![CDATA[
-+-------------+       *     *
-|UDP generator|       *     *     +----+
-|         host+----+--O-----O.....+STUN|
-|relay   srflx|    |  *     *     +----+
-+--+-------+--+    |  *     *
-   |       |       |  * LAN *
-   |       \-------/  *     *
-   |                  *     *                *
-   |      +------+    *     *   +------+     *
-   \------+ TURN +==============+ TURN +-----O
-          |client|    *     *   |server|     *
-          +------+    *     *   +------+     *
-
-.. STUN packets               *** Network interface
--- Bare UDP content link      *O* Candidate port
-== TURN encapsulated link
-]]></artwork>
-      </figure>
-
-      <figure anchor="proxy_figure"
-          title="WebRTC ICE candidates using a proxy">
-        <preamble>This figure shows the connections that provide the ICE
-        candidates for WebRTC when making use of a proxy.</preamble>
-        <artwork><![CDATA[
-+-------------+    *  +------+  *                     +----+
-|UDP generator|    *  |Proxy |  *                    .+STUN|
-|         host+-------+ TURN |  *               *   . +----+
-|relay   srflx|    *  |Client|  *               *  .
-+--+-------+--+    *  |      |  *   +------+    * .   +------+     *
-   |       |       *  |      |  *   |Proxy |    *.    | App  |     *
-   |       \----------+      +######+ TURN +????O=====+TURN  +-----O
-   |               *  |      |  *   |Server|    *     |Server|     *
-   |      +------+ *  |      |  *   +------+    *     +------+     *
-   |      | App  | *  |      |  *               *
-   \------+ TURN +====+      |  *               *
-          |client| *  |      |  *
-          +------+ *  +------+  *
-
-.. STUN packets                         *** Network interface
--- Bare UDP content link                *O* Candidate port
-== TURN encapsulated UDP content link
-## RETURN double-encapsulated link
-?? Mixed content link
-]]></artwork>
-      </figure>
-
-
     </section>
 
     <section title="Security Considerations">
