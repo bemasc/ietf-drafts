@@ -18,11 +18,31 @@
     </title>
 
     <author fullname="Benjamin M. Schwartz" initials="B. M." surname="Schwartz">
-      <organization>Google</organization>
+      <organization abbrev="Google">Google, Inc.</organization>
 
       <address>
         <postal>
-          <street>747 6th Ave S</street>
+          <street>111 8th Ave</street>
+
+          <city>New York</city>
+
+          <region>NY</region>
+
+          <code>10011</code>
+
+          <country>USA</country>
+        </postal>
+
+        <email>bemasc@webrtc.org</email>
+      </address>
+    </author>
+
+    <author fullname="Justin Uberti" initials="J." surname="Uberti">
+      <organization abbrev="Google">Google, Inc.</organization>
+
+      <address>
+        <postal>
+          <street>747 6th Street South</street>
 
           <city>Kirkland</city>
 
@@ -32,8 +52,7 @@
 
           <country>USA</country>
         </postal>
-
-        <email>bemasc@webrtc.org</email>
+        <email>justin@uberti.name</email>
       </address>
     </author>
 
