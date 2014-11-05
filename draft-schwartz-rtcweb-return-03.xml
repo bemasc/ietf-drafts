@@ -287,7 +287,7 @@
       <section title="ICE candidates produced in the presence of a proxy">
         <t>When a proxy is configured, by Auto-Discovery or a proprietary means,
         the browser MUST NOT report a &ldquo;relay&rdquo; candidate representing
-        the proxy. Instead, for each active proxy, the browser MUST connect to
+        the proxy. Instead, the browser MUST connect to
         the proxy and then, if the connection is successful, treat the TURN
         tunnel as a UDP-only virtual interface.</t>
 
@@ -345,6 +345,20 @@
         <xref target="I-D.reddy-mmusic-ice-best-interface-pcp"></xref>.  Similar
         considerations apply when connecting to an application-specified TURN
         server in the presence of physical and virtual interfaces.</t>
+      </section>
+
+      <section title="IPv4 and IPv6">
+        <t>A proxy MAY have both an IPv4 and an IPv6 address (e.g. if the proxy
+        is specified by DNS and has both A and AAAA records).  The client MUST
+        connect to the proxy using only one of these addresses, preferring IPv6,
+        in accordance with the <xref target="RFC6555">Happy Eyeballs</xref>
+        procedure for dual-stack clients.</t>
+
+        <t>A proxy MAY provide both IPv4 and IPv6 remote addresses to clients
+        <xref target="RFC6156"></xref>.  A client SHOULD request both address
+        families.  If both requests are granted, the client SHOULD treat the two
+        addresses as host candidates on a dual-stack virtual interface.
+        </t>
       </section>
 
       <section title="Unspecified leakiness">
@@ -596,6 +610,53 @@
 
         <format octets="285120"
                 target="http://www.rfc-editor.org/rfc/rfc1928.txt" type="TXT" />
+      </reference>
+
+      <reference anchor="RFC6156">
+        <front>
+          <title>Traversal Using Relays around NAT (TURN) Extension for
+          IPv6</title>
+
+          <author fullname="Gonzalo Camarillo" initials="G."
+              surname="Camarillo">
+            <organization>Ericsson</organization>
+          </author>
+
+          <author fullname="Oscar Novo" initials="O." surname="Novo">
+            <organization>Ericsson</organization>
+          </author>
+
+          <author fullname="Simon Perreault" initials="S." surname="Perreault">
+            <organization>Viagenie</organization>
+          </author>
+
+          <date month="April" year="2011" />
+        </front>
+
+        <seriesInfo name="RFC" value="6156" />
+
+        <format target="http://www.rfc-editor.org/rfc/rfc6156.txt" type="TXT" />
+      </reference>
+
+      <reference anchor="RFC6555">
+        <front>
+          <title>Happy Eyeballs: Success with Dual-Stack Hosts</title>
+
+          <author fullname="Dan Wing" initials="D." surname="Wing">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <author fullname="Andrew Yourtchenko" initials="A."
+              surname="Yourtchenko">
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <date month="April" year="2012" />
+        </front>
+
+        <seriesInfo name="RFC" value="6555" />
+
+        <format target="http://www.rfc-editor.org/rfc/rfc6555.txt" type="TXT" />
       </reference>
 
       <reference anchor="I-D.ietf-rtcweb-jsep">
