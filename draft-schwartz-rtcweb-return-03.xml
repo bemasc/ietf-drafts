@@ -349,10 +349,11 @@
 
       <section title="IPv4 and IPv6">
         <t>A proxy MAY have both an IPv4 and an IPv6 address (e.g. if the proxy
-        is specified by DNS and has both A and AAAA records).  The client MUST
-        connect to the proxy using only one of these addresses, preferring IPv6,
-        in accordance with the <xref target="RFC6555">Happy Eyeballs</xref>
-        procedure for dual-stack clients.</t>
+        is specified by DNS and has both A and AAAA records).  The client MAY
+        try both of these addresses, but MUST select one, preferring IPv6,
+        before allocating any remote addresses.  This corresponds to the
+        the <xref target="RFC6555">Happy Eyeballs</xref> procedure for
+        dual-stack clients.</t>
 
         <t>A proxy MAY provide both IPv4 and IPv6 remote addresses to clients
         <xref target="RFC6156"></xref>.  A client SHOULD request both address
