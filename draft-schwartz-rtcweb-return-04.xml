@@ -122,6 +122,222 @@
       return.</t>
     </section>
 
+    <section title="Visual Overview of RETURN" anchor="visual_overview">
+	<figure anchor="app_turn_figure"
+          title="Basic WebRTC ICE Candidates with TURN Server">
+        <artwork><![CDATA[
+    ____________    inside network     ||           outside network
+   /            \                      ||  NAT/FW
+   |       host O              ________||________
+   |            |             /        ||        \
+   |       srflx|.............|..................O      ___________
+   |            |             |        ||        |     /           \
+   |       relay|- - - - - - -|- - - - - - - - - |- - -|- - - - - -O
+   |            |             |        ||        |     |           |
+   |            |             |        ||        |     |           |
+   |            |             |        ||        |     |           |
+   |            |             |        ||        |     |           |
+   |            |             |        ||        |     \___________/
+   |            |             |        ||        |
+   |            |             |        ||        |    Application TURN
+   |            |             |        ||        |    server in cloud
+   \____________/             \________||________/
+                                       ||
+       Browser                         ||
+                                       ||
+   KEY     O    Candidate
+         .....  Non encapsulated
+         - - -  TURN encapsulated
+           ||   Network edge
+]]></artwork></figure>
+       <t><xref target="app_turn_figure" /> shows a browser located
+       inside a home or enterprise network which connects to the Internet
+       through a Network Address Translator and Firewall (NAT/FW).  A
+       TURN server in the Internet cloud is also shown, which is provided
+       by the WebRTC application via the JavaScript IceServers object.</t>
+
+       <t>A WebRTC application can use a TURN server to provide NAT traversal,
+       but also to provide privacy, routing, logging, and monitoring or
+       possibly other functionality.  The application can force all traffic
+       to flow through the TURN server using the JavaScript
+       RTCIceTransportPolicy object <xref target="I-D.ietf-rtcweb-jsep"/>.
+       Since this TURN server is injected by the application, we will refer to
+       it as an Application TURN server.</t>
+
+        <figure anchor="ent_turn_figure"
+          title="WebRTC ICE Candidates with DMZ TURN Server">
+        <artwork><![CDATA[
+    ____________    inside network     ||           outside network
+   /            \                      ||  NAT/FW
+   |       host O              ________||________
+   |            |             /        ||        \
+   |       srflx|.............|..................O
+   |            |             |        ||        |
+   |            |             |        ||        |
+   |            |             |   _____||_____   |
+   |            |             |  /     ||     \  |
+   |    (border)|- - - - - - -| -|- - - - - - O  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   |            |             |  \_____||_____/  |
+   \____________/             \________||________/
+                                       ||
+       Browser           Border TURN   ||
+                        server in DMZ  ||
+   KEY     O    Candidate
+         .....  Non encapsulated
+         - - -  TURN encapsulated
+           ||   Network edge
+]]></artwork>
+      </figure>
+        <t><xref target="ent_turn_figure" /> shows a TURN server co-resident with
+        the NAT/FW, i.e. in the DMZ of the FW.  This TURN server might be used by an
+        enterprise, ISP, or home network to enable WebRTC media flows that would
+        otherwise be blocked by the firewall, or to improve quality of service on
+        flows that pass through this TURN server. This TURN server is not part of
+        a particular application, and is managed as part of the border control
+        system, so we call it a Border TURN Server.</t>
+
+        <t><xref target="ent_turn_figure" /> shows the port allocated on this TURN
+        server as "(border)", not any particular candidate type, because there is
+        not yet any specified mechanism for WebRTC to acquire an ICE candidate on a
+        Border TURN Server.</t>
+
+        <figure anchor="app_proxy_figure"
+                title="WebRTC ICE Candidates with Application and Border TURN Servers">
+          <artwork><![CDATA[
+    ____________    inside network     ||           outside network
+   /            \                      ||  NAT/FW
+   |       host O              ________||________
+   |            |             /        ||        \
+   |       srflx|.............|..................O      ___________
+   |            |             |        ||        |     /           \
+   |       relay|- - - - - - -|- - - - - - - - - |- - -|- - - - - -O
+   |            |             |   _____||_____   |     |           |
+   |            |             |  /     ||     \  |     |           |
+   |    (border)|- - - - - - -|- |- - - - - - O  |     |           |
+   |            |             |  |     ||     |  |     \___________/
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |    Application TURN
+   |            |             |  |     ||     |  |         server
+   |            |             |  \_____||_____/  |
+   \____________/             \________||________/
+                                       ||
+       Browser             Border TURN ||
+                             server    ||
+   KEY     O    Candidate
+         .....  Non encapsulated
+         - - -  TURN encapsulated
+           ||   Network edge
+]]></artwork>
+        </figure>
+        <t>In <xref target="app_proxy_figure" />, if the NAT/FW blocks
+        UDP traffic except for UDP traffic to/from the Border TURN server,
+        only the "(border)" candidate will work.  However, there is no
+        specified way for WebRTC to use this candidate.  Moreover, this
+        candidate on its own is not sufficient to satisfy the user's needs.
+        Both TURN servers provide important functionality, so we need a
+        way for WebRTC to select a candidate that uses both TURN servers.</t>
+
+        <t>The solution proposed in this draft is for the browser to implement
+        RETURN, which provides a candidate that traverses both TURN servers,
+        as shown in <xref target="return_figure"/>.</t>
+
+        <figure anchor="return_figure"
+                title="WebRTC ICE Candidates with Application TURN and Border TURN Proxy Servers">
+          <artwork><![CDATA[
+    ____________    inside network     ||           outside network
+   /            \                      ||  NAT/FW
+   |       host O              ________||________
+   |            |             /        ||        \
+   |       srflx|.............|..................O      ___________
+   |            |             |        ||        |     /           \
+   |       relay|- - - - - - -|- - - - - - - - - |- - -|- - - - - -O
+   |            |             |   _____||_____   |     |           |
+   |            |             |  /     ||     \  |     |           |
+   |      relay2|-------------|--|------------| -|- - -|- - - - - -O
+   |            |             |  |     ||     |  |     \___________/
+   |      srflx2|- - - - - - -|- |- - - - - - O  |
+   |            |             |  |     ||     |  |   Application TURN
+   |      host2 |- - - - - - -|- |- - - - - - O  |         server
+   |            |             |  \_____||_____/  |
+   \____________/             \________||________/
+                                       ||
+       Browser       Border TURN Proxy ||
+                           server      ||
+   KEY     O    Candidate
+         .....  Non encapsulated
+         - - -  TURN encapsulated
+         -----  Double TURN encapsulated
+           ||   Network edge
+]]></artwork>
+        </figure>
+        <t>The Browser in <xref target="return_figure" /> implements
+        RETURN, so it allocates a port on the Border TURN server, now
+        referred to as a Border TURN Proxy by analogy to an HTTP
+        CONNECT or SOCKS Proxy (see <xref target="http_proxy_figure" />),
+        and then runs STUN and TURN over this allocation, resulting
+        in three candidates: relay2, srflx2, and host2.  The relay2
+        candidate causes traffic to flow through both TURN servers by
+        encapsulating TURN within TURN - hence the name Recursively
+        Encapsulated TURN (RETURN).</t>
+
+        <t>The host2 and srflx2 candidates are probably identical, so
+        one will be dropped by ICE.  If the NAT/FW blocks UDP and the
+        application uses only relay candidates, then the relay2
+        candidate will be selected.  Otherwise, the other candidates will
+        be used, in accordance with the usual ICE procedure.</t>
+
+        <t>Only the browser needs to implement the RETURN behavior -
+        both the Border TURN Proxy and Application TURN servers' TURN
+        protocol usage is unchanged.</t>
+
+        <t><list><t>
+        Note that this arrangement preserves the end-to-end security
+        and privacy features of WebRTC media flows.  The ability to
+        steer the media flows through multiple TURN servers while still
+        allowing end-to-end encryption and authentication is a key
+        benefit of RETURN.
+        </t></list></t>
+
+      <figure anchor="http_proxy_figure"
+              title="Similarity between HTTP/HTTPS Proxy and TURN Proxy">
+<artwork><![CDATA[
+    ____________    inside network     ||           outside network
+   /            \                      ||  NAT/FW
+   |            |              ________||________
+   |            |             /   _____||_____   \
+   |            |             |  /     ||     \  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   | Web Traffic|=============|==|============H  |
+   |            |             |  |     ||     |  |
+   |            |       HTTP/ |  |     ||     |  |
+   |            |       HTTPS |  \_____||_____/  |
+   |            |       Proxy |        ||        |
+   |            |             |   _____||_____   |
+   |            |             |  /     ||     \  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   |WebRTC Media|- - - - - - -|- |- - - - - - O  |
+   |            |             |  |     ||     |  |
+   |            |             |  |     ||     |  |
+   |            |       TURN  |  \_____||_____/  |
+   \____________/       Proxy \________||________/
+                                       ||
+       Browser                         ||
+                                       ||
+   KEY     O    TURN Proxy Candidate
+           H    HTTP/HTTPS Proxy Address
+         - - -  TURN encapsulated
+         =====  HTTP/HTTPS web traffic
+           ||   Network edge
+]]></artwork>
+      </figure>
+    </section>
+
     <section title="Goals">
       <t>These goals are requirements on this document (not on implementations
       of the specification).</t>
@@ -232,62 +448,6 @@
         application context (e.g. a webpage), there is at most one active sealed
         proxy.  This document does not specify a representation for rank.</t>
       </section>
-    </section>
-
-    <section title="Diagrams">
-      <figure anchor="basic_figure"
-          title="Basic WebRTC ICE candidates (no proxy)">
-        <preamble>This figure shows the connections that provide the ICE
-        candidates for WebRTC in the basic configuration (no proxy).  This
-        figure is provided in order to serve as a baseline against which to
-        compare the candidate routes that make use of a proxy.</preamble>
-        <artwork><![CDATA[
-+-------------+       *     *
-|UDP generator|       *     *     +----+
-|         host+----+--O-----O.....+STUN|
-|relay   srflx|    |  *     *     +----+
-+--+-------+--+    |  *     *
-   |       |       |  * LAN *
-   |       \-------/  *     *
-   |                  *     *                *
-   |      +------+    *     *   +------+     *
-   \------+ TURN +==============+ TURN +-----O
-          |client|    *     *   |server|     *
-          +------+    *     *   +------+     *
-
-.. STUN packets               *** Network interface
--- Bare UDP content link      *O* Candidate port
-== TURN encapsulated link
-]]></artwork>
-      </figure>
-
-      <figure anchor="proxy_figure"
-          title="WebRTC ICE candidates using a proxy">
-        <preamble>This figure shows the connections that provide the ICE
-        candidates for WebRTC on the virtual interface that represents a
-        proxy.</preamble>
-        <artwork><![CDATA[
-+-------------+       +------+  *                     +----+
-|UDP generator|       |Proxy |  *                    .+STUN|
-|         host+-------+ TURN |  *               *   . +----+
-|relay   srflx|       |Client|  *               *  .
-+--+-------+--+       |      |  *   +------+    * .   +------+     *
-   |       |          |      |  *   |Proxy |    *.    | App  |     *
-   |       \----------+      +######+ TURN +????O=====+TURN  +-----O
-   |                  |      |  *   |Server|    *     |Server|     *
-   |      +------+    |      |  *   +------+    *     +------+     *
-   |      | App  |    |      |  *               *
-   \------+ TURN +====+      |  *               *
-          |client|    |      |  *
-          +------+    +------+  *
-
-.. STUN packets                         *** Network interface
--- Bare UDP content link                *O* Candidate port
-== TURN encapsulated UDP content link
-## RETURN double-encapsulated link
-?? Mixed content link
-]]></artwork>
-      </figure>
     </section>
 
     <section title="Requirements">
@@ -562,7 +722,8 @@
     <section title="Acknowledgements">
       <t>Thanks to Harald Alvestrand, Philipp Hancke, Tirumaleswar Reddy, Alan
       Johnston, and John Yoakum for suggestions to improve the content and
-      presentation.</t>
+      presentation.  Special thanks to Alan Johnston for contributing the
+      visual overview in <xref target="visual_overview"/>.</t>
     </section>
   </middle>
 
