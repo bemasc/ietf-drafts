@@ -145,7 +145,7 @@
         </list>
         </t>
 
-        <t>The TURN server implementation MAY use a high-level DNS resolution API, such as gethostbyname or getaddrinfo, to perform the lookup.</t>
+        <t>When multiple A or AAAA records are present, which one is selected is implementation-defined. The TURN server implementation MAY use a high-level DNS resolution API, such as gethostbyname or getaddrinfo, to perform the lookup.</t>
 
         <t>If the Allocation has both address families, then it MUST look for an IPv6 address, and fall back to IPv4 only if a AAAA record is not found.</t>
       </section>
