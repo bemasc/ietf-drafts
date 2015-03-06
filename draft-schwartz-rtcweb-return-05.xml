@@ -10,7 +10,7 @@
 <?rfc colonspace="yes" ?>
 <?rfc rfcedstyle="no" ?>
 <?rfc tocdepth="4"?>
-<rfc category="std" docName="draft-schwartz-rtcweb-return-04" ipr="trust200902">
+<rfc category="std" docName="draft-schwartz-rtcweb-return-05" ipr="trust200902">
   <front>
     <title abbrev="RETURN">
       Recursively Encapsulated TURN (RETURN) for Connectivity and Privacy in
@@ -56,7 +56,7 @@
       </address>
     </author>
 
-    <date day="10" month="November" year="2014" />
+    <date day="6" month="March" year="2015" />
 
     <area>RAI</area>
 
@@ -617,8 +617,8 @@
         provider's metadata reporting) that was meant to be kept secret.</t>
 
         <t>As a result of this requirement, it is possible for the same TURN
-        server to appear up to three times in a RETURN network path: once as the
-        application's TURN server, and once as each peer's sealed proxy.</t>
+        server to appear up to four times in a RETURN network path: once as each
+        peer's application's TURN server, and once as each peer's sealed proxy.</t>
       </section>
     </section>
 
