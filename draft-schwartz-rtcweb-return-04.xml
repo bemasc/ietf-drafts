@@ -157,9 +157,9 @@
        by the WebRTC application via the JavaScript IceServers object.</t>
 
        <t>A WebRTC application can use a TURN server to provide NAT traversal,
-       but also to provide privacy, routing, logging, and monitoring or
-       possibly other functionality.  The application can force all traffic
-       to flow through the TURN server using the JavaScript
+       but also to provide privacy, routing optimizations, logging, or
+       possibly other functionality.  The application can accomplish this by
+       forcing all traffic to flow through the TURN server using the JavaScript
        RTCIceTransportPolicy object <xref target="I-D.ietf-rtcweb-jsep"/>.
        Since this TURN server is injected by the application, we will refer to
        it as an Application TURN server.</t>
@@ -201,20 +201,28 @@
         system, so we call it a Border TURN Server.</t>
 
         <t><xref target="ent_turn_figure" /> shows the port allocated on this TURN
-        server as "(border)", not any particular candidate type, because there is
-        not yet any specified mechanism for WebRTC to acquire an ICE candidate on a
-        Border TURN Server.</t>
+        server as "(border)", not any particular candidate type, to distinguish it
+        from the other ports, which have been represented as ICE candidates in
+        accordance with the WebRTC specifications.  This case is different, because
+        unlike an Application TURN server, there is not yet any specification for
+        how WebRTC should interact with a Border TURN server.  Under what conditions
+        should WebRTC allocate a port on a Border TURN server? How should WebRTC
+        represent that port as an ICE candidate? This draft serves to answer these
+        two questions.</t>
 
         <figure anchor="app_proxy_figure"
                 title="WebRTC ICE Candidates with Application and Border TURN Servers">
           <artwork><![CDATA[
-    ____________    inside network     ||           outside network
-   /            \                      ||  NAT/FW
-   |       host O              ________||________
+                    inside network     ||           outside network
+    ____________                       ||  NAT/FW
+   /            \              ________||________
    |            |             /        ||        \
-   |       srflx|.............|..................O      ___________
+   |            |             |        ||        |
+   |       host O.............X        ||        |
+   |            |             |        ||        |
+   |       srflx|.............X..................O      ___________
    |            |             |        ||        |     /           \
-   |       relay|- - - - - - -|- - - - - - - - - |- - -|- - - - - -O
+   |       relay|- - - - - - -X- - - - - - - - - |- - -|- - - - - -O
    |            |             |   _____||_____   |     |           |
    |            |             |  /     ||     \  |     |           |
    |    (border)|- - - - - - -|- |- - - - - - O  |     |           |
@@ -231,13 +239,16 @@
          .....  Non encapsulated
          - - -  TURN encapsulated
            ||   Network edge
+           X    Firewall block
 ]]></artwork>
         </figure>
-        <t>In <xref target="app_proxy_figure" />, if the NAT/FW blocks
-        UDP traffic except for UDP traffic to/from the Border TURN server,
-        only the "(border)" candidate will work.  However, there is no
-        specified way for WebRTC to use this candidate.  Moreover, this
-        candidate on its own is not sufficient to satisfy the user's needs.
+        <t>In <xref target="app_proxy_figure" />, there is both an
+        Application TURN server and a Border TURN server.  The Firewall
+        is blocking UDP traffic except for UDP traffic to/from the Border
+        TURN server, so only the "(border)" port allocation will work.  However,
+        there is no specified way for WebRTC to use this port as a candidate.
+        Moreover, this port on its own would not be sufficient to satisfy
+        the user's needs.
         Both TURN servers provide important functionality, so we need a
         way for WebRTC to select a candidate that uses both TURN servers.</t>
 
