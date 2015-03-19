@@ -289,7 +289,7 @@
       </section>
 
       <section title="Dual-stack behavior">
-        <t>If a specific address family is not indicated for the remote endpoint, and the server does not support dual allocation (e.g. <xref target="I-D.ietf-tram-turnbis">ADDITIONAL-ADDRESS-FAMILY</xref>]), then the client’s behavior is implementation-defined.  For example, when processing a request to send the first packet to a DNS name, the client MAY use an approach inspired by <xref target="RFC6555">Happy Eyeballs</xref>:
+        <t>If a specific address family is not indicated for the remote endpoint, and the server does not support dual allocation (e.g. <xref target="I-D.ietf-tram-turnbis">ADDITIONAL-ADDRESS-FAMILY</xref>]), then the client’s behavior is implementation-defined.  For example, when processing a request to send the first packet to a DNS name, the client could use an approach inspired by <xref target="RFC6555">Happy Eyeballs</xref>:
         <list style="symbols">
           <t>Create an Allocation for the system’s preferred address family (e.g. IPv6).</t>
           <t>Attempt to connect to the DNS name on this Allocation using a ChannelBind message.
@@ -361,14 +361,14 @@ client                               server    
   |                                    |<=======DNS result=========|
   |                                    |     (192.0.2.15)          |
   |<-- CreatePermission success resp --|             |             |
+  |                                    |             |             |
+  |-- Send ind (peer-a.example.com) -->|             |             |
+  |                                    |=== data ===>|             |
   |                                    |             |             |
   |------- ChannelBind req ----------->|             |             |
   |  (peer-a.example.com to 0x4001)    |             |             |
   |                                    |             |             |
   |<---- ChannelBind succ resp --------|             |             |
-  |                                    |             |             |
-  |-- Send ind (peer-a.example.com) -->|             |             |
-  |                                    |=== data ===>|             |
   |                                    |             |             |
   |                                    |<== data ====|             |
   |<---------- [0x4001] data ----------|             |             |
