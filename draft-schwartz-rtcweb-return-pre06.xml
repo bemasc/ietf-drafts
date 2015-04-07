@@ -703,6 +703,16 @@
     </section>
 
     <section title="Security Considerations">
+      <t>A RETURN proxy can capture, block, and otherwise interfere with all of
+      its clients' WebRTC network activity.  Therefore, browsers and other WebRTC
+      endpoints MUST NOT use RETURN proxies that are provided by untrusted
+      sources.  For example, endpoints MUST NOT implement a configuration based
+      on unauthenticated network multicast (e.g. mDNS) unless the endpoint will
+      only be used on networks where all other users are fully trusted to
+      intercept all WebRTC traffic.  In contrast, endpoints MAY implement
+      mechanisms to configure RETURN proxies by system-wide policy, which can only
+      be modified by trusted system administrators.</t>
+
       <t>This document describes web browser behaviors that, if implemented
       correctly, allow users to achieve greater identity-confidentiality during
       WebRTC calls under certain configurations.</t>
