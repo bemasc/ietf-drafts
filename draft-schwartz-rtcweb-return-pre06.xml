@@ -742,9 +742,9 @@
 
     <section title="Acknowledgements">
       <t>Thanks to Harald Alvestrand, Philipp Hancke, Tirumaleswar Reddy, Alan
-      Johnston, and John Yoakum for suggestions to improve the content and
-      presentation.  Special thanks to Alan Johnston for contributing the
-      visual overview in <xref target="visual_overview"/>.</t>
+      Johnston, John Yoakum, and Cullen Jennings for suggestions to improve the
+      content and presentation.  Special thanks to Alan Johnston for
+      contributing the visual overview in <xref target="visual_overview"/>.</t>
     </section>
   </middle>
 
