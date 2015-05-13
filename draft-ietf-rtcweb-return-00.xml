@@ -10,7 +10,7 @@
 <?rfc colonspace="yes" ?>
 <?rfc rfcedstyle="no" ?>
 <?rfc tocdepth="4"?>
-<rfc category="std" docName="draft-schwartz-rtcweb-return-06" ipr="trust200902">
+<rfc category="std" docName="draft-ietf-rtcweb-return-00" ipr="trust200902">
   <front>
     <title abbrev="RETURN">
       Recursively Encapsulated TURN (RETURN) for Connectivity and Privacy in
@@ -56,7 +56,7 @@
       </address>
     </author>
 
-    <date day="7" month="April" year="2015" />
+    <date day="13" month="May" year="2015" />
 
     <area>RAI</area>
 
@@ -96,8 +96,8 @@
       <xref target="I-D.ietf-tram-turn-server-discovery"></xref>, or through a
       proprietary mechanism. This TURN server may be placed inside the network,
       with a firewall configuration allowing it to communicate with the public
-      internet, or it may be operated by the a third party outside the network,
-      with a firewall configuration that allows hosts inside the network. to
+      internet, or it may be operated by a third party outside the network,
+      with a firewall configuration that allows hosts inside the network to
       communicate with it. Use of the specified TURN server may be the only
       way for clients on the network to achieve a high quality WebRTC
       experience.  This scenario is required to be supported by the WebRTC
