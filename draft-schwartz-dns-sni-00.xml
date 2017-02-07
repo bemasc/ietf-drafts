@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc iprnotified="no" ?>
+<?rfc strict="yes" ?>
+<?rfc compact="yes" ?>
+<?rfc sortrefs="yes" ?>
+<?rfc colonspace="yes" ?>
+<?rfc rfcedstyle="no" ?>
+<?rfc tocdepth="4"?>
+<rfc category="std" docName="draft-schwartz-dns-sni-00" ipr="trust200902">
+  <front>
+    <title abbrev="DNSSNI">
+      A DNS Resource Record for TLS Server Name Indication (DNS SNI)
+    </title>
+
+    <author fullname="Benjamin M. Schwartz" initials="B. M." surname="Schwartz">
+      <organization abbrev="Google">Google, Inc.</organization>
+
+      <address>
+        <postal>
+          <street>111 8th Ave</street>
+
+          <city>New York</city>
+
+          <region>NY</region>
+
+          <code>10011</code>
+
+          <country>USA</country>
+        </postal>
+
+        <email>bemasc@google.com</email>
+      </address>
+    </author>
+
+    <date day="7" month="February" year="2017" />
+
+    <area>SEC</area>
+
+    <abstract>
+      <t>The SNI record type allows a domain owner to specify the "server name"
+      to indicate in TLS connections, if it is different from the domain name.
+      This allows domains that use shared hosting and wildcard or multi-domain
+      (UCC) certificates to change the only domain name shown in cleartext, to
+      prevent a passive adversary from identifying exactly which domain a user
+      is accessing.</t>
+    </abstract>
+  </front>
+
+  <middle>
+    <section title="Introduction">
+      <t>Modern Internet standards are designed to avoid unnecessarily revealing sensitive information about a user's behavior to a passive  adversary.  One key piece of sensitive information is the name of the domain that a user is visiting.  Most commonly, this is the DNS name of a website, so the sensitive information indicates browsing history at domain granularity.</t>
+
+      <t>Several protocol standards contain elements that protect the user's browsing history from a passive adversary.  The DNS over TLS standard <xref target="RFC7858"></xref> allows clients to perform DNS queries without revealing the request or response to an attacker.  This allows clients to access DNS-named services without publicly revealing the name of the services that they are about to access.</t>
+
+      <t>After a DNS lookup, the HTTPS standard <xref target="RFC2818"></xref> allows clients to perform HTTP requests to a server without revealing the contents of the HTTP request or response, using TLS.  This hides the website's host name from being observed by a passive adversary.  Previous versions of TLS transferred the server's certificate in cleartext, revealing some information about the identity of the destination, but TLS 1.3 <xref target="I-D.ietf-tls-tls13"></xref> enables encrypting the certificate as well.</t>
+
+      <t>However, modern use of HTTPS requires providing a TLS Server Name Indication (SNI, <xref target="RFC6066"></xref>), which conveys the website's DNS name in cleartext.  Sending the Server Name Indication in cleartext reveals the user's sensitive information to a passive adversary, defeating the desired privacy benefit.</t>
+      <figure anchor="modern_web_request"
+          title="HTTP request with DPRIVE, HTTP/2, and TLS-1.3">
+        <artwork><![CDATA[
+    DNS Server                Client                         HTTP Server
+         |                      |                                     |
+   1.    |<==example.com AAAA?==|                                     |
+   2.    |===2001:db8::1=======>|                                     |
+   3.    |                      |--TLS ClientHello SNI:example.com--->|
+   4.    |                      |<------TLS ServerHello---------------|
+   5.    |                      |<==TLS EncryptedExt SNI:example.com==|
+   6.    |                      |<==TLS Certificate, CN:example.com===|
+   7.    |                      |==HTTP GET :authority:example.com===>|
+
+           ==== encrypted           ---- cleartext
+]]></artwork></figure>
+
+      <t>This document describes a new DNS record that allows a domain owner to tell clients precisely what Server Name Indication to send.  For domains that use wildcard or multi-domain (UCC) certificates, this name may differ from the website's DNS name, preventing the passive adversary from learning the user's browsing history with high confidence.  Clients can make use of this record without adding delay to their connection process, and clients who do not make use of this record are not negatively impacted.</t>
+      <section title="Threat example: shared hosting service">
+        <t>Consider a shared hosting service, example.com, that offers each user their own website, hosted at a unique subdomain like alicesphotos.example.com.  For confidentiality and access control, example.com provides its users with service over HTTPS, using a wildcard certificate for *.example.com.  All users' subdomains are hosted by the same set of servers.</t>
+
+        <t>Prior to the introduction of TLS Server Name Indication, this arrangement was sufficient to prevent a passive adversary who monitors example.com's incoming traffic from determining which user is visiting which subdomain.  However, modern TLS clients publish the Fully Qualified Domain Name in the TLS ClientHello as the Server Name Indication, so the adversary can easily identify which client IP address is accessing which subdomain.  Mapping IP addresses to individual users is often straightforward for an adversary with access to ISP records or a popular website's logs.</t>
+
+        <t>The user's choice of which subdomain to visit may be sensitive.  Subdomains of shared hosting services often contain controversial material, and users may reasonably wish not to make public the names of the subdomains that they read.</t>
+
+        <t>The user's identity as the author of a particular subdomain is typically even more sensitive.  Authors of controversial sites on shared hosting often choose not to reveal their true identity or location, to protect their physical safety.  However, the author of a domain is typically the the only visitor who is likely to upload a large amount of data.  By combining the TLS SNI with a simple upload threshold, the adversary can determine the author's client IP address with high confidence.</t>
+      </section>
+    </section>
+
+    <section title="Concept">
+      <t>We define a new RRTYPE: "SNI".  To control the TLS Server Name Indication that clients set, a TLS endpoint operator MAY publish one or more SNI records for their domain name (the "base domain").</t>
+
+      <t>Each SNI record MUST contain a prefix of the form _(port)._(transport), the same prefix used for a TLSA record <xref target="RFC6698"></xref>.  The SNI record's RDATA MUST contain the intended Server Name.  For example, if the operator of subdomain1.example.com wishes to inform HTTPS visitors to set a Server Name Indication of "subdomain2.example.com", they would publish a record of the form</t>
+
+      <t>_443._tcp.subdomain1.example.com. IN SNI subdomain2.example.com</t>
+
+      <t>SNI records that start with this standard prefix are only for use with IPv6 destinations listed in AAAA records for the base domain.  SNI records for use with IPv4 destinations MUST contain the additional prefix "_v4", e.g. _v4._443._tcp.subdomain.example.com.</t>
+
+      <section title="Need for a new record type">
+        <t>Instead of defining a new record type, we could convey this information using an existing record type.  However, using any existing record type has some significant drawbacks.</t>
+        <section title="Using SRV">
+          <t>We could achieve an equivalent effect using SRV records <xref target="RFC2782"></xref>, with a new protocol type.</t>
+
+          <t>This would function very similarly to an SNI record, but it would be a violation of the SRV specification, which requires the client to redirect to the domain in the RDATA and perform additional DNS queries.  SRV records also include a port, which is not meaningful in this context.  Using SRV records in this way might also make future extensions (e.g. to other forms of RDATA) somewhat less appealing.</t>
+        </section>
+        <section title="Using TLSA">
+          <t>We could use the existing TLSA record type <xref target="RFC6698"></xref>.  Clients could extract the server's supported names from a "full certificate association" <xref target="RFC6698">Section 4.1</xref> TLSA response.</t>
+
+          <t>This approach doesn't work well for wildcard certificates, because the client cannot tell what SNI to set.  Using TLSA in this way would also create problems for servers that use SNI for more than certificate selection, and for servers that have multiple overlapping certificates.  It might also be very inefficient: transferring an entire certificate just to learn its names is wasteful, and TLSA records that contain hashes would have to be discarded.</t>
+        </section>
+        <section title="Using TXT">
+          <t>We could encode this information in a TXT record, but that would violate the intended purpose of TXT records: to convey information to human readers.</t>
+        </section>
+      </section>
+    </section>
+
+    <section title="Client Requirements">
+      <t>When initiating a TLS connection to a domain and port, a client application SHOULD query the SNI record for the prefixed domain at the same time as the A or AAAA query, and wait for a response before initiating TLS.  The application MUST discard or ignore any SNI record whose RDATA is not a well-formed domain name or an empty string.  If an application's query returns multiple valid SNI records, the application SHOULD choose one at random.</t>
+
+      <t>Client applications that issue both an A and a AAAA query SHOULD issue two SNI queries: one with the additional "_v4" prefix and one without.</t>
+
+      <t>The client application SHOULD use the RDATA of the selected SNI record to set the Server Name Indication in the TLS ClientHello.  If the selected SNI record is present with an empty RDATA (RLENGTH = 0), then the client SHOULD omit the Server Name Indication.</t>
+
+      <t>Client applications MUST NOT allow the contents of the SNI record to influence their certificate validation behavior.  The client's certificate validation MUST be based on the user's specified destination, not the RDATA of the SNI DNS record.  If the server's certificate is not valid for the user's specified destination, the client application MUST terminate the TCP connection and SHOULD retry the TLS connection without the SNI RDATA, using the client's default Server Name Indication behavior.</t>
+    </section>
+
+    <section title="Server Requirements">
+      <t>Domain owners that publish an SNI record MUST ensure that all relevant servers, when receiving this SNI value, reply with a certificate whose set of valid domains includes the base domain.  The servers MUST satisfy this criterion for all SNI records that have been published and not yet expired.  Relevant servers are those whose IP addresses are in the correct family and are listed in a non-expired address record for this domain.</t>
+
+      <t>Domain owners that publish an SNI record MUST ensure that their servers do not depend on the TLS Server Name Indication to select which service to provide to the user.  For example, if the service uses HTTP/2, its servers MUST provide the service indicated by the :authority pseudo-header, not the service indicated by the SNI.</t>
+    </section>
+
+    <section title="Use Cases">
+      <t>A host that serves many subdomains with a single wildcard certificate could set the SNI of all subdomains to the same fixed subdomain, in order to prevent a passive adversary from learning which subdomain a user is accessing.</t>
+
+      <t>A host that uses multiple-domain (UCC) certificates, and which controls the DNS entries for domains that it hosts, could set several SNI records on the domains that share one certificate, with each record indicating a different domain name that is also provided in that certificate.  This would prevent a passive adversary from learning with confidence which of those domains a client is accessing.</t>
+
+      <t>A TLS service operator who does not use shared hosting could set an empty SNI record, to tell the client not to use SNI.</t>
+    </section>
+
+    <section title="Security Considerations">
+      <t>The SNI record is provided over DNS, and MAY be used with or without DNSSEC.  The SNI record is therefore untrusted, and clients MUST NOT rely on its presence or correctness.</t>
+
+      <t>A passive adversary who monitors the client's DNS queries could learn which domain the client is accessing, defeating the confidentiality benefits of this record type.  Therefore, clients wishing to conceal browsing history from a passive adversary SHOULD also use DNS over TLS <xref target="RFC7858"></xref>.  However, clients MAY use SNI records with standard DNS, in order to provide protection against a weak passive adversary who can monitor only the link between the client and the TLS server, not the link between the client and the DNS server.</t>
+
+      <t>An active adversary who controls the DNS could remove the SNI record, or add a malicious record.  Removing the record would cause the client to revert to its default behavior in the absence of an SNI record.  Adding a malicious record could cause the client to set an incorrect or nonexistent Server Name.  This will likely cause the initial connection attempt to fail, but does not cause any additional loss of confidentiality, because the client will still perform standard TLS certificate verification.  (Like the previous adversary, this active adversary can also monitor DNS queries, so they can still learn which domain the client is attempting to access.)</t>
+    </section>
+
+    <section title="Performance Considerations">
+      <t>Client applications that intend to make use of the SNI record SHOULD issue a DNS query for the SNI record immediately following the A or AAAA record query.  The client SHOULD NOT wait for an A or AAAA response before issuing the SNI query, as this would introduce an extra round-trip delay to the DNS server.  A client application SHOULD NOT delay initiating a TCP connection while waiting for the SNI DNS response.</t>
+      <figure anchor="dnssni_typical"
+          title="TLS connection with SNI record, typical case">
+        <artwork><![CDATA[
+  DNS Server                      Client                      TLS Server
+     |                               |                                 |
+  1. |<===example.com AAAA?==========|                                 |
+     |<==_443._tcp.example.com SNI?==|                                 |
+  2. |===AAAA 2001:db8::1===========>|                                 |
+     |                               |--------------TCP SYN----------->|
+  3. |======SNI example2.com========>|                                 |
+  4. |                               |<------------TCP SYN+ACK---------|
+     |                               |--------------TCP ACK----------->|
+     |                               |--ClientHello SNI:example2.com-->|
+]]></artwork></figure>
+
+      <t>If the client can begin sending data to the server (e.g. SYN-ACK is received) before the SNI RDATA has been received, the client MAY issue a ClientHello using its default behavior (i.e. without using the SNI RDATA).  Note that if the client's DNS resolver has similar performance for SNI and A/AAAA queries, the client will generally receive the SNI response before the destination server receives the TCP SYN packet, thus avoiding this situation.</t>
+    	<figure anchor="dnssni_slow"
+          title="TLS connection with SNI record, slow case (OPTIONAL)">
+        <artwork><![CDATA[
+    DNS Server                     Client                     TLS Server
+      |                               |                                |
+  1.  |<===example.com AAAA?==========|                                |
+      |<==_443._tcp.example.com SNI?==|                                |
+  2.  |===AAAA 2001:db8::1===========>|                                |
+      |                               |--------------TCP SYN---------->|
+  3.  |                               |<------------TCP SYN+ACK--------|
+      |                               |--------------TCP ACK---------->|
+      |                               |--ClientHello SNI:example.com-->|
+  4.  |======SNI example2.com========>|                                |
+]]></artwork></figure>
+
+      <t>If the client is using TCP Fast Open <xref target="RFC7413"></xref>, and the destination IP address is known (e.g. AAAA record is in cache) but the SNI RDATA is not known, the client MAY send a TLS ClientHello using its default behavior.  However, the client SHOULD also issue a DNS query for the SNI record, in order to populate the local cache for subsequent connection attempts.</t>
+      <figure anchor="dnssni_skip"
+          title="TCP Fast Open, AAAA cached but not SNI (OPTIONAL)">
+        <artwork><![CDATA[
+    DNS Server                        Client                  TLS Server
+      |                               |                                |
+  1.  |                               |----------TCP Fast Open-------->|
+      |                               |--ClientHello SNI:example.com-->|
+  2.  |<==_443._tcp.example.com SNI?==|                                |
+  3.  |======SNI example2.com========>|                                |
+]]></artwork></figure>
+
+      <t>If the client is using TCP Fast Open and the destination IP address is not known, the client SHOULD issue A/AAAA and SNI requests simultaneously.  If the A or AAAA response is received before the corresponding SNI response, the client SHOULD wait briefly (e.g. 1 millisecond) to allow receipt of the SNI response before issuing a TLS ClientHello.</t>
+      <figure anchor="dnssni_wait"
+          title="TCP Fast Open, nothing cached (delay is RECOMMENDED)">
+        <artwork><![CDATA[
+    DNS Server                        Client                  TLS Server
+     |                               |                                 |
+  1. |<===example.com AAAA?==========|                                 |
+     |<==_443._tcp.example.com SNI?==|                                 |
+  2. |===AAAA 2001:db8::1===========>|                                 |
+         [ client waits briefly for the SNI response to arrive ]
+  3. |======SNI example2.com========>|                                 |
+  4. |                               |----------TCP Fast Open--------->|
+     |                               |--ClientHello SNI:example2.com-->|
+]]></artwork></figure>
+      <t>TODO: Check if 1ms is a reasonable delay to receive an immediately subsequent packet on current hardware.</t>
+    </section>
+
+    <section title="Considerations for optimizing privacy">
+      <t>By publishing an SNI record, a service operator can reduce the ability of a passive network adversary to determine with certainty which domain each user is accessing.  Reducing leakage of information to this adversary, and reducing this adversary's confidence in the information they do collect, improves user privacy.</t>
+
+      <t>Regardless of SNI, a passive adversary still learns the client's destination's IP address.  The adversary may have foreknowledge of which domains are hosted at that address.  An active adversary could attempt a similar connection in order to learn more about the services hosted at the destination. The purpose of this proposal is to ensure that if there is more than one service hosted at the destination IP, a passive network adversary does not directly learn which service the client is using.  Services that share an IP address and TLS certificate with a wider range of other services can benefit more from the use of an SNI record.</t>
+
+      <t>An adversary may be able to distinguish different encrypted services on the same IP address by the size, frequency, and timing of encrypted packets.  Use of the SNI record does not prevent attacks of this kind.</t>
+
+      <t>If the adversary has full knowledge of the contents of the global DNS (a strong adversary), then users of a domain only experience a privacy benefit if another domain at the same IP address uses the same SNI RDATA.  The privacy benefit increases as more domains share the same SNI RDATA and the same IP addresses.</t>
+
+      <t>If all clients will use the SNI record, then the greatest privacy benefit is achieved by configuring all services that share a certificate to use the same SNI.  However, a service operator may also choose to publish multiple SNI records for a domain, listing several other services that share the same certificate.  The client will then choose from among these Server Name Indications at random.  This approach maintains protection of clients that are aware of the SNI record, but also benefits users who are not using the SNI record: if the adversary cannot distinguish these two groups of users, then it cannot tell with certainty which domain any user is accessing.  Note that due to response latency issues, some clients might not be using the SNI record contents, even if they have issued an SNI DNS query (see Performance Considerations).</t>
+    </section>
+
+    <section title="Extensibility">
+      <t>The SNI record as described here contains two main mechanisms for extensibility.  First, future extensions may describe records whose RDATA is not structured as a valid domain name (e.g. containing whitespace or "=" characters).  Clients conformant to this specification MUST ignore such records.</t>
+
+      <t>Second, clients that connect to a server and experience a negotiation failure SHOULD retry the connection without making use of the SNI record.  This allows future changes to the semantics of SNI records with RDATA that are valid domain names, without causing a serious problem for clients conformant to this version of the specification.</t>
+    </section>
+
+    <section title="IANA Considerations">
+      <t>This document uses a new DNS RR type, SNI, which will require a value assignment from IANA.</t>
+    </section>
+
+    <section title="Acknowledgements">
+      <t>Thanks to Ben Vitale, Warren Kumari, and Vinicius Fortuna for their constructive feedback.</t>
+    </section>
+  </middle>
+
+  <back>
+    <references title="Normative References">
+      <?rfc include="reference.RFC.6066.xml"?>
+      <?rfc include="reference.RFC.7858.xml"?>
+      <?rfc include="reference.RFC.6698.xml"?>
+      <?rfc include="reference.RFC.7413.xml"?>
+    </references>
+
+    <references title="Informative References">
+      <?rfc include="reference.RFC.2818.xml"?>
+      <?rfc include="reference.RFC.2782.xml"?>
+      <?rfc include="reference.I-D.ietf-tls-tls13.xml"?>
+    </references>
+
+  </back>
+</rfc>
