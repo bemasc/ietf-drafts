@@ -10,7 +10,7 @@
 <?rfc colonspace="yes" ?>
 <?rfc rfcedstyle="no" ?>
 <?rfc tocdepth="4"?>
-<rfc category="std" docName="draft-schwartz-dns-sni-01" ipr="trust200902">
+<rfc category="std" docName="draft-schwartz-dns-sni-02" ipr="trust200902">
   <front>
     <title abbrev="DNSSNI">
       A DNS Resource Record for TLS Server Name Indication (DNS SNI)
@@ -36,7 +36,7 @@
       </address>
     </author>
 
-    <date day="14" month="February" year="2017" />
+    <date day="17" month="February" year="2017" />
 
     <area>SEC</area>
 
@@ -92,7 +92,7 @@
 
       <t>Each SNI record MUST contain a prefix of the form _(port)._(transport), the same prefix used for a TLSA record <xref target="RFC6698"></xref>.  The SNI record's RDATA MUST contain the intended Server Name.  For example, if the operator of subdomain1.example.com wishes to inform HTTPS visitors to set a Server Name Indication of "subdomain2.example.com", they would publish a record of the form</t>
 
-      <t>_443._tcp.subdomain1.example.com. IN SNI subdomain2.example.com</t>
+      <t>_443._tcp.subdomain1.example.com. IN SNI "subdomain2.example.com"</t>
 
       <t>The RDATA of an SNI record consists of UTF-8 octets for use as a HostName in the TLS Server Name Indication field, in conformance with Section 3 of <xref target="RFC6066"></xref>.  DNS resolvers SHOULD treat SNI records as resource records of unknown type <xref target="RFC3597"></xref>.</t>
 
@@ -115,9 +115,9 @@
     </section>
 
     <section title="Client Requirements">
-      <t>When initiating a TLS connection to a domain and port, a client application SHOULD query the SNI record for the prefixed domain at the same time as the A or AAAA query, and wait for a response before initiating TLS.  The application MUST discard or ignore any SNI record whose RDATA is not a well-formed domain name or an empty string.  If an application's query returns multiple valid SNI records, the application SHOULD choose one at random.</t>
+      <t>When initiating a TLS connection to a domain and port, a client application SHOULD query the SNI record for the prefixed domain at the same time as the A or AAAA query.  The application MUST discard or ignore any SNI record whose RDATA is not a valid TLS HostName or an empty string.  If an application's query returns multiple valid SNI records, the application SHOULD choose one at random.</t>
 
-      <t>The client application SHOULD use the RDATA of the selected SNI record to set the Server Name Indication in the TLS ClientHello.  If the selected SNI record is present with an empty RDATA (RLENGTH = 0), then the client SHOULD omit the Server Name Indication.</t>
+      <t>The client application SHOULD use the RDATA of the selected SNI record as the Server Name Indication in the TLS ClientHello.  If the selected SNI record is present with an empty RDATA (RDLEN = 0), then the client SHOULD omit the Server Name Indication.</t>
 
       <t>Client applications MUST NOT allow the contents of the SNI record to influence their certificate validation behavior.  The client's certificate validation MUST be based on the user's specified destination, not the RDATA of the SNI DNS record.  If the server's certificate is not valid for the user's specified destination, the client application MUST terminate the TCP connection and SHOULD retry the TLS connection without the SNI RDATA, using the client's default Server Name Indication behavior.</t>
     </section>
@@ -220,6 +220,10 @@
       <t>If the adversary has full knowledge of the contents of the global DNS (a strong adversary), then users of a domain only experience a privacy benefit if another domain at the same IP address uses the same SNI RDATA.  The privacy benefit increases as more domains share the same SNI RDATA and the same IP addresses.</t>
 
       <t>If all clients will use the SNI record, then the greatest privacy benefit is achieved by configuring all services that share a certificate to use the same SNI.  However, a service operator may also choose to publish multiple SNI records for a domain, listing several other services that share the same certificate.  The client will then choose from among these Server Name Indications at random.  This approach maintains protection of clients that are aware of the SNI record, but also benefits users who are not using the SNI record: if the adversary cannot distinguish these two groups of users, then it cannot tell with certainty which domain any user is accessing.  Note that due to response latency issues, some clients might not be using the SNI record contents, even if they have issued an SNI DNS query (see Performance Considerations).</t>
+
+      <t>Use of the SNI record does not prevent an active adversary from learning which certificate the server is using.  A simple active adversary can reuse the client's observed Server Name Indication, to learn which certificate is sent by the server in reply.  Therefore, domain owners seeking to protect users against an active adversary MUST ensure that the server's certificate includes a sufficiently large and diverse set of domains to achieve their privacy goals.</t>
+
+      <t>In TLS 1.2 <xref target="RFC5246"></xref>, the server sends its certificate in cleartext, visible to a passive adversary.  A passive adversary can also observe the certificate ID if the client performs an OCSP lookup <xref target="RFC6960"></xref>.  Therefore, servers wishing to hide the certificate MUST implement TLS 1.3 and OCSP Stapling <xref target="RFC6961"></xref>.  Note that this precaution does not protect against even a simple active adversary.</t>
     </section>
 
     <section title="Extensibility">
@@ -244,6 +248,9 @@
       <?rfc include="reference.RFC.6698.xml"?>
       <?rfc include="reference.RFC.7413.xml"?>
       <?rfc include="reference.RFC.3597.xml"?>
+      <?rfc include="reference.RFC.5246.xml"?>
+      <?rfc include="reference.RFC.6960.xml"?>
+      <?rfc include="reference.RFC.6961.xml"?>
     </references>
 
     <references title="Informative References">
