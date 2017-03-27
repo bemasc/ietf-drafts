@@ -10,7 +10,7 @@
 <?rfc colonspace="yes" ?>
 <?rfc rfcedstyle="no" ?>
 <?rfc tocdepth="4"?>
-<rfc category="std" docName="draft-ietf-rtcweb-return-01" ipr="trust200902">
+<rfc category="std" docName="draft-ietf-rtcweb-return-02" ipr="trust200902">
   <front>
     <title abbrev="RETURN">
       Recursively Encapsulated TURN (RETURN) for Connectivity and Privacy in
@@ -56,7 +56,7 @@
       </address>
     </author>
 
-    <date day="26" month="January" year="2016" />
+    <date day="27" month="March" year="2017" />
 
     <area>RAI</area>
 
@@ -102,8 +102,8 @@
       way for clients on the network to achieve a high quality WebRTC
       experience.  This scenario is required to be supported by the WebRTC
       requirements document
-      <xref target="I-D.ietf-rtcweb-use-cases-and-requirements"></xref> Section
-      3.3.5.1.</t>
+      <xref target="RFC7478"></xref> Section
+      2.3.5.1.</t>
 
       <t>When the application intends to use a TURN server for identity
       cloaking, and the enterprise network administrator intends to use a TURN
@@ -154,7 +154,7 @@
        inside a home or enterprise network which connects to the Internet
        through a Network Address Translator and Firewall (NAT/FW).  A
        TURN server in the Internet cloud is also shown, which is provided
-       by the WebRTC application via the JavaScript IceServers object.</t>
+       by the WebRTC application via the JavaScript RTCIceServers object.</t>
 
        <t>A WebRTC application can use a TURN server to provide NAT traversal,
        but also to provide privacy, routing optimizations, logging, or
@@ -355,8 +355,8 @@
 
       <section title="Connectivity">
         <t>As noted in
-        <xref target="I-D.ietf-rtcweb-use-cases-and-requirements"></xref>
-        Section 3.3.5.1 and requirement F20, a WebRTC browser endpoint MUST be
+        <xref target="RFC7478"></xref>
+        Section 2.3.5.1 and requirement F20, a WebRTC browser endpoint MUST be
         able to direct UDP
         connections through a designated TURN server configured by enterprise
         policy (a &ldquo;proxy&rdquo;).</t>
@@ -382,7 +382,8 @@
           <t>logging connection metadata for legal or auditing reasons,</t>
           <t>recording the entire contents of all connections, or</t>
           <t>providing partial IP address anonymization (as described in
-          <xref target="I-D.ietf-rtcweb-security"></xref> Section 4.2.4).</t>
+          <xref target="I-D.ietf-rtcweb-security"></xref> Section 4.2.4 and
+          <xref target="I-D.ietf-rtcweb-security-arch"></xref> Section 5.4).</t>
         </list>
         </t>
       </section>
@@ -406,7 +407,7 @@
         which modifies traffic at the network layer.)  Mechanisms to configure a
         proxy include Auto-Discovery
         <xref target="I-D.ietf-tram-turn-server-discovery"></xref> and local
-        policy (<xref target="I-D.ietf-rtcweb-jsep"></xref>, "ICE candidate
+        policy (<xref target="I-D.ietf-rtcweb-jsep"></xref> Section 3.5.3, "ICE candidate
         policy").</t>
 
         <t>In an application context, a proxy may be &ldquo;active&rdquo;
@@ -518,11 +519,10 @@
         product of the number of physical interfaces and the number of active
         proxies.)</t>
 
-        <t>For strategies to choose the best interface for communication with a
-        proxy, see
-        <xref target="I-D.reddy-mmusic-ice-best-interface-pcp"></xref>.  Similar
-        considerations apply when connecting to an application-specified TURN
-        server in the presence of physical and virtual interfaces.</t>
+        <t>Mechanisms for configuring a RETURN proxy SHOULD allow configuring a
+        proxy that only applies to connections made from a single physical
+        interface.  This is useful to optimize efficiency in modes 2 and 3 of
+        <xref target="I-D.ietf-rtcweb-ip-handling"></xref>.</t>
       </section>
 
       <section title="IPv4 and IPv6">
@@ -730,7 +730,7 @@
       protection by obscuring the identity of one peer from the other.
       However, unencrypted TURN provides no additional privacy from an observer
       who can monitor the link between the TURN client and server, and even
-      encrypted TURN (<xref target="I-D.ietf-tram-stun-dtls"></xref> Section
+      encrypted TURN (<xref target="RFC7350"></xref> Section
       4.6) does not provide significant privacy from an observer who sniff
       traffic on both legs of the TURN connection, due to packet timing
       correlations.</t>
@@ -750,353 +750,21 @@
 
   <back>
     <references title="Normative References">
-      <reference anchor="RFC5245">
-        <front>
-          <title>Interactive Connectivity Establishment (ICE): A Protocol for
-          Network Address Translator (NAT) Traversal for Offer/Answer
-          Protocols</title>
-
-          <author fullname="J. Rosenberg" initials="J." surname="Rosenberg">
-            <organization>jdrosen.net</organization>
-          </author>
-
-          <date month="April" year="2010" />
-        </front>
-
-        <seriesInfo name="RFC" value="5245" />
-
-        <format target="http://www.rfc-editor.org/rfc/rfc5245.txt" type="TXT" />
-      </reference>
-
-      <reference anchor="RFC5766">
-        <front>
-          <title>Traversal Using Relays around NAT (TURN): Relay Extensions to
-          Session Traversal Utilities for NAT (STUN)</title>
-
-          <author fullname="Rohan Mahy" initials="R." surname="Mahy">
-            <organization></organization>
-          </author>
-
-          <author fullname="Philip Matthews" initials="P." surname="Matthews">
-            <organization>Alcatel-Lucent</organization>
-          </author>
-
-          <author fullname="J. Rosenberg" initials="J." surname="Rosenberg">
-            <organization>jdrosen.net</organization>
-          </author>
-
-          <date month="April" year="2010" />
-        </front>
-
-        <seriesInfo name="RFC" value="5766" />
-
-        <format target="http://www.rfc-editor.org/rfc/rfc5245.txt" type="TXT" />
-      </reference>
-
-      <reference anchor="RFC1928">
-        <front>
-          <title>SOCKS Protocol Version 5</title>
-
-          <author fullname="Marcus Leech" initials="M." surname="Leech">
-            <organization>Bell-Northern Research Ltd</organization>
-          </author>
-
-          <author initials="M." surname="Ganis">
-            <organization>International Business Machines</organization>
-          </author>
-
-          <author initials="Y." surname="Lee">
-            <organization>NEC Systems Laboratory</organization>
-          </author>
-
-          <author initials="R." surname="Kuris">
-            <organization>Unify Corporation</organization>
-          </author>
-
-          <author initials="D." surname="Koblas">
-            <organization></organization>
-          </author>
-
-          <author initials="L." surname="Jones">
-            <organization>Hewlett-Packard Company</organization>
-          </author>
-
-          <date month="March" year="1996" />
-        </front>
-
-        <seriesInfo name="RFC" value="5766" />
-
-        <format octets="285120"
-                target="http://www.rfc-editor.org/rfc/rfc1928.txt" type="TXT" />
-      </reference>
-
-      <reference anchor="RFC6156">
-        <front>
-          <title>Traversal Using Relays around NAT (TURN) Extension for
-          IPv6</title>
-
-          <author fullname="Gonzalo Camarillo" initials="G."
-              surname="Camarillo">
-            <organization>Ericsson</organization>
-          </author>
-
-          <author fullname="Oscar Novo" initials="O." surname="Novo">
-            <organization>Ericsson</organization>
-          </author>
-
-          <author fullname="Simon Perreault" initials="S." surname="Perreault">
-            <organization>Viagenie</organization>
-          </author>
-
-          <date month="April" year="2011" />
-        </front>
-
-        <seriesInfo name="RFC" value="6156" />
-
-        <format target="http://www.rfc-editor.org/rfc/rfc6156.txt" type="TXT" />
-      </reference>
-
-      <reference anchor="RFC6555">
-        <front>
-          <title>Happy Eyeballs: Success with Dual-Stack Hosts</title>
-
-          <author fullname="Dan Wing" initials="D." surname="Wing">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Andrew Yourtchenko" initials="A."
-              surname="Yourtchenko">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <date month="April" year="2012" />
-        </front>
-
-        <seriesInfo name="RFC" value="6555" />
-
-        <format target="http://www.rfc-editor.org/rfc/rfc6555.txt" type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.ietf-rtcweb-jsep">
-        <front>
-          <title>Javascript Session Establishment Protocol</title>
-
-          <author fullname="Justin Uberti" initials="J" surname="Uberti">
-            <organization></organization>
-          </author>
-
-          <author fullname="Cullen Jennings" initials="C" surname="Jennings">
-            <organization></organization>
-          </author>
-
-          <date day="13" month="February" year="2014" />
-
-          <abstract>
-            <t>This document describes the mechanisms for allowing a Javascript
-            application to control the signaling plane of a multimedia session
-            via the interface specified in the W3C RTCPeerConnection API, and
-            discusses how this relates to existing signaling protocols.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft" value="draft-ietf-rtcweb-jsep-06" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-jsep-06.txt"
-                type="TXT" />
-      </reference>
+      <?rfc include="reference.RFC.5245.xml"?>
+      <?rfc include="reference.RFC.5766.xml"?>
+      <?rfc include="reference.RFC.1928.xml"?>
+      <?rfc include="reference.RFC.6156.xml"?>
+      <?rfc include="reference.RFC.6555.xml"?>
+      <?rfc include="reference.I-D.ietf-rtcweb-jsep.xml"?>
+      <?rfc include="reference.I-D.ietf-tram-turn-server-discovery.xml"?>
     </references>
 
     <references title="Informative References">
-      <reference anchor="I-D.ietf-tram-turn-server-discovery">
-        <front>
-          <title>TURN Server Auto Discovery</title>
-
-          <author fullname="Prashanth Patil" initials="P" surname="Patil">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Dan Wing" initials="D" surname="Wing">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <date day="24" month="July" year="2014" />
-
-          <abstract>
-            <t>Current Traversal Using Relays around NAT (TURN) server discovery
-            mechanisms are relatively static and limited to explicit
-            configuration.  These are usually under the administrative control
-            of the application or TURN service provider, and not the enterprise
-            or the ISP, the network in which the client is located.  Enterprises
-            and ISPs wishing to provide their own TURN servers need auto
-            discovery mechanisms that a TURN client could use with no or minimal
-            configuration.  This document describes two such mechanisms for TURN
-            server discovery.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="draft-ietf-tram-turn-server-discovery-00" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-tram-turn-server-discovery-00.txt"
-                type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.reddy-mmusic-ice-best-interface-pcp">
-        <front>
-          <title>Improving ICE Interface Selection Using Port Control Protocol
-          (PCP) Flow Extension</title>
-
-          <author fullname="Tirumaleswar Reddy" initials="T" surname="Reddy">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Dan Wing" initials="D" surname="Wing">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Bill VerSteeg" initials="B" surname="VerSteeg">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Reinaldo Penno" initials="R" surname="Penno">
-            <organization>Cisco Systems, Inc.</organization>
-          </author>
-
-          <author fullname="Varun Singh" initials="V" surname="Singh">
-            <organization>Aalto University</organization>
-          </author>
-
-          <date day="10" month="October" year="2013" />
-
-          <abstract>
-            <t>A host with multiple interfaces needs to choose the best
-            interface for communication.  Oftentimes, this decision is based on
-            a static configuration and does not consider the link
-            characteristics of that interface, which may affect the user
-            experience.</t>
-
-            <t>This document describes a mechanism for an endpoint to query the
-            link characteristics from the access router (the router at the other
-            end of the endpoint's access link) using a Port Control Protocol
-            (PCP) Flow Extension.  This information influences endpoint's
-            Interactive Connectivity Establishment (ICE) candidate selection
-            algorithm.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="draft-ietf-tram-turn-server-discovery-00" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-tram-turn-server-discovery-00.txt"
-                type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.ietf-rtcweb-use-cases-and-requirements">
-        <front>
-          <title>Web Real-Time Communication Use-cases and Requirements</title>
-
-          <author fullname="Christer Holmberg" initials="C" surname="Holmberg">
-            <organization>Ericsson</organization>
-          </author>
-
-          <author fullname="Stefan Hakansson" initials="S" surname="Hakansson">
-            <organization>Ericsson</organization>
-          </author>
-
-          <author fullname="Goran AP Eriksson" initials="G" surname="Eriksson">
-            <organization>Ericsson</organization>
-          </author>
-
-          <date day="12" month="February" year="2014" />
-
-          <abstract>
-            <t>This document describes web based real-time communication
-            use-cases. Requirements on the browser functionality are derived
-            from the use-cases.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="ietf-rtcweb-use-cases-and-requirements-14" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
-                type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.ietf-tram-stun-dtls">
-        <front>
-          <title>Datagram Transport Layer Security (DTLS) as Transport for
-          Session Traversal Utilities for NAT (STUN)</title>
-
-          <author fullname="Marc Petit-Huguenin" initials="M"
-                  surname="Petit-Huguenin">
-            <organization>Jive Communications</organization>
-          </author>
-
-          <author fullname="Gonzalo Salgueiro" initials="G" surname="Salgueiro">
-            <organization>Cisco Systems</organization>
-          </author>
-
-          <date day="27" month="June" year="2014" />
-
-          <abstract>
-            <t>This document specifies the usage of Datagram Transport Layer
-            Security (DTLS) as a transport protocol for Session Traversal
-            Utilities for NAT (STUN).  It provides guidances on when and how to
-            use DTLS with the currently standardized STUN Usages.  It also
-            specifies modifications to the STUN URIs and TURN URIs and to the
-            TURN resolution mechanism to facilitate the resolution of STUN URIs
-            and TURN URIs into the IP address and port of STUN and TURN servers
-            supporting DTLS as a transport protocol.  This document updates RFC
-            5389 and RFC 5928.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="ietf-rtcweb-use-cases-and-requirements-14" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-use-cases-and-requirements-14.txt"
-                type="TXT" />
-      </reference>
-
-      <reference anchor="I-D.ietf-rtcweb-security">
-        <front>
-          <title>Security Considerations for WebRTC</title>
-
-          <author fullname="Eric Rescorla" initials="E" surname="Rescorla">
-            <organization>RTFM, Inc.</organization>
-          </author>
-
-          <date day="4" month="July" year="2014" />
-
-          <abstract>
-            <t>The Real-Time Communications on the Web (RTCWEB) working group is
-            tasked with standardizing protocols for real-time communications
-            between Web browsers, generally called "WebRTC".  The major use cases
-            for WebRTC technology are real-time audio and/or video calls, Web
-            conferencing, and direct data transfer.  Unlike most conventional
-            real-time systems (e.g., SIP-based soft phones) WebRTC communications
-            are directly controlled by a Web server, which poses new security
-            challenges.  For instance, a Web browser might expose a JavaScript
-            API which allows a server to place a video call.  Unrestricted access
-            to such an API would allow any site which a user visited to "bug" a
-            user's computer, capturing any activity which passed in front of
-            their camera.  This document defines the WebRTC threat model and
-            analyzes the security threats of WebRTC in that model.</t>
-          </abstract>
-        </front>
-
-        <seriesInfo name="Internet-Draft"
-                    value="ietf-rtcweb-security-07" />
-
-        <format target="http://www.ietf.org/internet-drafts/draft-ietf-rtcweb-security-07.txt"
-                type="TXT" />
-      </reference>
-
+      <?rfc include="reference.RFC.7478.xml"?>
+      <?rfc include="reference.RFC.7350.xml"?>
+      <?rfc include="reference.I-D.ietf-rtcweb-security.xml"?>
+      <?rfc include="reference.I-D.ietf-rtcweb-security-arch.xml"?>
+      <?rfc include="reference.I-D.ietf-rtcweb-ip-handling.xml"?>
     </references>
 
   </back>
