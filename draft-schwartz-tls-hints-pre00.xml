@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc iprnotified="no" ?>
+<?rfc strict="yes" ?>
+<?rfc compact="yes" ?>
+<?rfc sortrefs="yes" ?>
+<?rfc colonspace="yes" ?>
+<?rfc rfcedstyle="no" ?>
+<?rfc tocdepth="4"?>
+<rfc category="std" docName="draft-schwartz-tls-delegation" ipr="trust200902">
+  <front>
+    <title abbrev="JAFHITH">
+      JSON Announcement Format for Hiding Identifiers in TLS Handshakes
+    </title>
+
+    <author fullname="Benjamin M. Schwartz" initials="B. M." surname="Schwartz">
+      <organization abbrev="Google">Google, Inc.</organization>
+
+      <address>
+        <postal>
+          <street>111 8th Ave</street>
+
+          <city>New York</city>
+
+          <region>NY</region>
+
+          <code>10011</code>
+
+          <country>USA</country>
+        </postal>
+
+        <email>bemasc@google.com</email>
+      </address>
+    </author>
+
+    <date day="31" month="July" year="2017" />
+
+    <area>SEC</area>
+
+    <abstract>
+      <t>Typical TLS connections reveal the destination's identity in cleartext, in the Server Name Indication (SNI).  Clients can avoid revealing this information in many cases, but only if they already have some additional information about alternative ways to access the destination.  This document describes a format in which server operators may distribute such information, so that participating clients can reduce how much information they reveal to a passive adversary.</t>
+    </abstract>
+  </front>
+
+  <middle>
+    <section title="Introduction">
+      <t>In the TLS protocol, the client's first message typically includes a Server Name Indication (SNI), representing the name of the desired service in plain text <xref target="RFC6066"></xref>.  In the case of a fresh connection, this message cannot be encrypted because the client does not yet know any public key for the server, and the server may need to know this name in order to send the corresponding public key to the client.  As a result, most usages of TLS, such as in common web browsers, reveal the full domain name of every visited website in clear text to any passive adversary.</t>
+
+      <t>Although the SNI is sometimes necessary, many services can be accessed in a mode that does not reveal the server name in cleartext.  However, the client cannot make use of this property unless it has some information to identify which services support such a mode, and how to use it.  The purpose of this format is to provide a language in which service operators can publish this kind of information, in the hope that participating clients may have already acquired the information before constructing their first TLS ClientHello to the service.</t>
+
+      <t>This document is not intended to describe all the relevant access modes.  Indeed, new modes are still under development <xref target="I-D.huitema-tls-sni-encryption"></xref>.  Rather, its purpose is to provide a framework in which to communicate information about these access modes between service operators and clients.</t>
+    </section>
+
+    <section title="Terms">
+      <t><list style="symbols">
+        <t>Destination service: The endpoint that the user wishes to access over TLS.  Services are identified by a domain name.</t>
+        <t>Access claim: a document providing hints about privacy-preserving ways to access the destination service.</t>
+        <t>Hint publishing system: a system for distributing hints for accessing third-party services.</t>
+      </list></t>
+    </section>
+
+    <section title="Goals">
+      <t>This format is intended to be suitable for use in publish-subscribe or broadcast-style distribution mechanisms.  The format therefore MUST include all information that the client needs in order to avoid revealing the service name in the TLS SNI.  The format MUST be suitable for usages in which its contents are known to the adversary, but SHOULD also support uses that require the contents to remain secret from the adversary.</t>
+
+      <t>For efficiency reasons, the format SHOULD be able to represent a set of N mutually colocated services in O(N) space.  (Some simple designs require O(N^2) space in this case.)</t>
+
+      <t>The format MUST support signing with an X.509 certificate, including the full certificate chain.  The format SHOULD also support additional signature mechanisms for improved security.</t>
+
+      <t>The format MUST support currently deployed SNI hiding modes, and SHOULD be extensible to anticipated future modes.</t>
+    </section>
+
+    <section title="Format">
+      <t>The format is based on JSON Web Signatures <xref target="RFC6066"></xref>.  The JWS Payload contains an "access claim list", which indicates ways to access the desired service.  The Signature identifies that service, and proves its endorsement of these access modes.</t>
+
+      <t>Each access claim indicates
+        <list style="symbols">
+          <t>access modes supported for accessing the service, including any information required to use that mode</t>
+          <t>common information needed for multiple modes, such as relevant domain names, and IP address ranges to include or exclude.  The client's use of these values MAY differ depending on the mode.</t>
+        </list>
+      </t>
+
+      <section title="Claim Syntax">
+        <t>Each access claim list is listed under the name "access".  The value of this property is an array of Access Objects.</t>
+
+        <t>Each Access Object in the array MUST include the property "modes", whose value is an array of Mode Objects.  Each Mode Object MUST contain a "name" property whose value is a String.  Each Mode Object MAY also contain additional properties that are specific to the named mode.</t>
+
+        <t>Each Access Object MAY contain the property "domains", which is an Array of Strings.  Each String is a valid Domain Name, except that '*' characters MAY appear in place of one or more labels.  Clients SHOULD replace any wildcard labels with randomly generated valid DNS labels.</t>
+
+        <t>Each Access Object MAY contain the property "addresses", which is an Address Object.  An Address Object MAY
+        contain "include" and "restrict" properties, whose values are Arrays of Strings.  Each String is an IP address or subnet mask in standard textual notation.</t>
+
+        <t>To allow future extensions to this format, clients SHOULD ignore any Strings that do not conform to the specified syntax, and SHOULD ignore any unrecognized properties.</t>
+      </section>
+
+      <section title="JWS and Signature requirements">
+        <t>A JSON Web Signature is REQUIRED for use of this format.  Clients MUST ignore any claims that are not correctly signed.</t>
+
+        <t>The signature MUST include an "x5c" (X.509 certificate chain) parameter containing the certificate for the destination service.  The certificate SHOULD include an embedded Signed Certificate Timestamp extension, and clients MAY reject signatures by certificates without this extension.</t>
+
+        <t>The signature SHOULD include an "exp" (expiration time) field, and MAY contain a "nbf" (not before) field.  Clients MUST respect these fields, and ignore any signature that is not currently valid.</t>
+
+        <t>The signature MAY include a "sub" (subject) field.  If the "sub" field is present, its value MUST exactly match the certificate's Subject Name or one of the Subject Alternative Names, and the client MUST NOT use the signed claims for any of the other names in the certificate.  If the "sub" field is not present, then the claims apply to the Subject Name and all of the Subject Alternative Names in the certificate.</t>
+
+        <t>Clients MUST support the use of JWS DEFLATE compression with the "zip" parameter, and systems for generating claims SHOULD use DEFLATE compression.</t>
+      </section>
+    </section>
+
+    <section title="Usage model">
+      <t>There are various ways that this format might be used.  The simplest arrangement might be a central repository of access claims.  A central service operator could maintain a public database of claims published by domain operators, and clients could sync a local copy of the database periodically (e.g. once per day).  The architecture and protocols of this data distribution system are out of scope for this document.</t>
+
+      <t>Once the client has a local database of access claims, the client can use it to reduce SNI leakage.  Before each outgoing connection, the client would
+        <list style="numbers">
+          <t>Find all claims that apply to the destination service's name.</t>
+          <t>Discard any claims that are not correctly signed (if not already done).</t>
+          <t>Select the claims that indicate a mode supported by the client.</t>
+          <t>Select one of these claims and modes according to the client's preferences or at random.</t>
+          <t>Attempt to initiate the connection in the selected mode, making use of the additional information provided in the claim.</t>
+          <t>If connection fails, possibly retry with the same or a different mode, subject to rate limits (as described in the Security Considerations).</t>
+        </list>
+      </t>
+
+      <t>In this usage model, a passive adversary might observe that the client is fetching a database of access claims, but would be less able to determine which services the client is accessing.</t>
+    </section>
+
+    <section title="Existing modes">
+      <t>This section defines modes corresponding to existing, common techniques for improving SNI privacy.  These modes have demonstrated utility for some users, but are NOT RECOMMENDED for general use due to limitations in the security and privacy they can provide.</t>
+
+      <section title="SNI Alteration Mode">
+        <t>This mode has the name "sni".  In the Mode Object, the property "sni_values" MUST be an Array of Strings.  Each String is a value that the client MAY use as the SNI.  The empty string indicates that the client MAY send a ClientHello without SNI.</t>
+
+        <t>Upon establishing a connection, the client MUST verify that the server has correctly proved its identity as the destination service, regardless of the SNI value.</t>
+
+        <t>If the Access Object contains an Address Object with a "restrict" property, the client MUST NOT use this access mode unless connecting to a destination server with an IP address that matches at least one entry in this array.  The client MAY perform a DNS lookup for the destination service.  If a DNS query returns multiple addresses, the client MAY prefer a server address that matches the restrict array.</t>
+
+        <t>If the Access Object contains an Address Object with an "include" property, the client MAY skip DNS lookup and use one of these addresses instead.</t>
+
+          <figure title="Example claim for bypassing SNI and DNS"><artwork><![CDATA[
+{
+  "access": [{
+    "modes": [{
+      "name": "sni",
+      "sni_values": [""]
+    }],
+    "addresses": {
+      "include": [
+        "192.0.2.10",
+        "192.0.2.20/30",
+        "2001:db8::30"
+      ]
+    }
+  }]
+}
+]]></artwork></figure> 
+      </section>
+
+      <section title="Trusted Delegation Mode">
+        <t>This mode has the name "trusted-delegation".  No additional properties are required in the Mode Object.</t>
+
+        <t>In this mode, the Access Object MUST contain a "domains" property.  A client using this mode SHOULD select one of these names and connect to it over TLS.  The client SHOULD include this domain in the TLS SNI, and MUST verify that the server proves ownership of the selected name.</t>
+
+        <t>Inside the TLS tunnel, the client SHOULD send exactly the same data as it would send in an ordinary connection.  If the interior protocol supports securely multiplexing multiple services identified by their domain names (e.g. HTTP/2), then the client MAY share an existing TLS connection.</t>
+
+        <t>To locate the server, the client SHOULD perform a DNS lookup for the selected domain name, and connect to the returned address, unless otherwise indicated by the Address Object as in SNI Alteration Mode.</t>
+
+        <figure title="Example delegation claim"><artwork><![CDATA[
+{
+  "access": [{
+    "modes": [{
+      "name": "trusted-delegation"
+    }],
+    "domains": [
+      "secondary1.example",
+      "secondary2.example",
+      "*.secondary3.example"
+    ],
+    "addresses": {
+      "restrict": [
+        "192.0.2.128/25",
+        "2001:db8::1000/116"
+      ]
+    }
+  }]
+}
+]]></artwork></figure> 
+      </section>
+
+      <section title="TCP Proxy Mode">
+        <t>This mode has the name "tcp-proxy".  The Mode Object MUST also contain the property "protocol", with a string value.  Currently, the only defined value for this string is "http-connect".  The Access Object MUST contain a "domains" property.</t>
+
+        <t>If the protocol is "http-connect", then the Mode Object MAY also have the property "authorization", with a string value.  If the authorization is present, the client MUST transmit its value in a Proxy-Authorization HTTP header.  The proxy operator MAY respond to CONNECT requests that do not have a correct Proxy-Authorization header with any HTTP response, in order to avoid revealing the presence of proxy functionality.</t>
+
+        <t>Initial connection MUST proceed as in Trusted Delegation Mode.  However, after connecting to the selected domain, the client MUST initiate an HTTP CONNECT proxy session to the destination domain.  Within the proxy tunnel, the client MUST perform a new TLS handshake, and verify that the remote party is in fact the destination service.</t>
+
+        <figure title="Example proxy claim"><artwork><![CDATA[
+{
+  "access": [{
+    "modes": [{
+      "name": "tcp-proxy",
+      "protocol": "http-connect",
+      "authorization": "basic dXNlcm5hbWU6cGFzc3dvcmQ"
+    }],
+    "domains": [
+      "cooperating-domain.example"
+    ]
+  }]
+}
+]]></artwork></figure> 
+      </section>
+    </section>
+
+    <section title="Security Considerations">
+      <t>The primary security considerations for this scheme are related to
+        <list style="symbols">
+          <t>Content integrity</t>
+          <t>Metadata leakage</t>
+          <t>Denial of service.</t>
+        </list>
+        These threats apply to
+        <list style="symbols">
+          <t>the destination service</t>
+          <t>cooperating services</t>
+          <t>non-cooperating third parties.</t>
+        </list>
+      Different access modes have different security properties by these measures.</t>
+
+      <t>The "sni" access mode guarantees content integrity for the destination service, and does not involve any other cooperating service.  However, if the provided SNI is unusual or distinctive, an attacker may be able to infer the destination service, or at least infer the use of this scheme.</t>
+
+      <t>The "trusted-delegation" mode only guarantees content integrity so long as the cooperating services are in fact trustworthy.  This mode also reveals all user metadata (and transferred data) to the cooperating service.  Service operators MUST exercise caution when considering this mode, and SHOULD keep their validity period short to protect against delegates that become untrustworthy.</t>
+
+      <t>The "tcp-proxy" mode reveals metadata (the user's intent to access the destination) to the cooperating service (i.e. the proxy).  Proxy operators SHOULD restrict the destination domains and ports to those specific services that the proxy intends to support.</t>
+
+      <t>All of these access modes enable a potential Denial of Service attack against a non-cooperating third party, by listing this party's IP address in the "includes" section of the Address Object, or by specifying their domain name in the "domains" section of the Access Object.  To reduce the volume of any such attack, clients MUST NOT allow multiple in-process access attempts, and MUST implement a one-second timeout after each failed attempt.</t>
+
+      <t>All of the protections against these threats rely on the service operator having sole control of their certificate's private key.  If an adversary acquires the operator's key, or acquires a mis-issued certificate for the service's name, they can publish a fraudulent access claim that will redirect users to their service instead.  However, the requirement to include a Signed Certificate Timestamp will help make these attacks publicly visible, drawing attention to relevant poor security practices.  To further mitigate these attacks, we might be able to make use of DNSSEC signatures or signatures by cooperating services in future versions of this format.</t>
+    </section>
+
+    <section title="Efficiency Considerations">
+      <t>Systems for publishing claims in this format SHOULD include optimizations for the case of transferring multiple signatures of the same claims (i.e. same JWS Payload).  By transferring the payload and signature separately, it should be possible for many services that share serving infrastructure to share a single payload.</t>
+
+      <t>Although this format is suitable for public distribution, if it is widely adopted there will likely be too many claims for all clients to download, store, and update all of them.  Systems for subscribing to subsets of the claims, querying databases of claims, or pushing claims directly from participating parties could improve efficiency, but are out of scope for this document.</t>
+    </section>
+
+    <section title="Considerations for optimizing privacy">
+      <t>Some access modes require the client to perform DNS queries that reveal similar information to the SNI.  Clients SHOULD combine use of this format with DNS Privacy <xref target="RFC7858"></xref> for maximum effectiveness.</t>
+
+      <t>Implausible wildcard domain name labels might reveal usage of this scheme.  Clients MAY choose wildcard labels by any means, e.g. a random word from a dictionary.</t>
+
+      <t>The client's privacy is best-protected when all unencrypted aspects of their connection are identical to a large number of other services and clients.  This includes the destination IP address, ClientHello extensions, and other connection characteristics.</t>
+    </section>
+
+    <section title="IANA Considerations">
+      <t>This format requires a new JWS claim type ("access"), as well as a registry of access mode names and associated properties.</t>
+    </section>
+
+    <section title="Acknowledgements">
+      <t>This document follows a requirements sketch by Christian Huitema.</t>
+    </section>
+  </middle>
+
+  <back>
+    <references title="Normative References">
+      <?rfc include="reference.RFC.6066.xml"?>
+      <?rfc include="reference.RFC.7858.xml"?>
+      <?rfc include="reference.RFC.7515.xml"?>
+    </references>
+
+    <references title="Informative References">
+      <?rfc include="reference.I-D.huitema-tls-sni-encryption.xml"?>
+    </references>
+
+  </back>
+</rfc>
